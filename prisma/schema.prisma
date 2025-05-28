@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String            @id @default(cuid())
+  clerkId       String            @unique
+  email         String            @unique
+  name          String?
+  avatar        String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  dateOfBirth   DateTime?
+  gender        Gender?
+  height        Float?
+  weight        Float?
+  activityLevel ActivityLevel     @default(MODERATE)
+  dietaryGoals  DietaryGoal       @default(MAINTENANCE)
+  customFoods   CustomFood[]
+  dailyIntakes  DailyIntake[]
+  favoriteFoods FavoriteFood[]
+  goals         Goal[]
+  achievements  UserAchievement[]
+
+  @@map("users")
+}
+
+model FoodProduct {
+  id            String        @id @default(cuid())
+  barcode       String?       @unique
+  name          String
+  brand         String?
+  servingSize   Float
+  servingUnit   String        @default("g")
+  calories      Float
+  protein       Float
+  carbohydrates Float
+  sugars        Float?
+  fat           Float
+  saturatedFat  Float?
+  fiber         Float?
+  sodium        Float?
+  nutriGrade    NutriGrade?
+  imageUrl      String?
+  verified      Boolean       @default(false)
+  source        DataSource    @default(OPENFOODFACTS)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  customFoods   CustomFood[]
+  intakeEntries IntakeEntry[]
+
+  @@map("food_products")
+}
+
+model CustomFood {
+  id            String        @id @default(cuid())
+  userId        String
+  name          String
+  servingSize   Float
+  servingUnit   String        @default("g")
+  calories      Float
+  protein       Float
+  carbohydrates Float
+  fat           Float
+  brand         String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  baseProductId String?
+  baseProduct   FoodProduct?  @relation(fields: [baseProductId], references: [id])
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intakeEntries IntakeEntry[]
+
+  @@map("custom_foods")
+}
+
+model DailyIntake {
+  id                 String        @id @default(cuid())
+  userId             String
+  date               DateTime      @db.Date
+  totalCalories      Float         @default(0)
+  totalProtein       Float         @default(0)
+  totalCarbohydrates Float         @default(0)
+  totalFat           Float         @default(0)
+  totalFiber         Float         @default(0)
+  totalSodium        Float         @default(0)
+  waterIntake        Float         @default(0)
+  calorieGoalMet     Boolean       @default(false)
+  proteinGoalMet     Boolean       @default(false)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries            IntakeEntry[]
+
+  @@unique([userId, date])
+  @@map("daily_intakes")
+}
+
+model IntakeEntry {
+  id            String          @id @default(cuid())
+  dailyIntakeId String
+  foodProductId String?
+  customFoodId  String?
+  quantity      Float
+  unit          String          @default("g")
+  mealType      MealType
+  consumedAt    DateTime        @default(now())
+  calories      Float
+  protein       Float
+  carbohydrates Float
+  fat           Float
+  detectedBy    DetectionMethod @default(MANUAL)
+  confidence    Float?
+  createdAt     DateTime        @default(now())
+  customFood    CustomFood?     @relation(fields: [customFoodId], references: [id])
+  dailyIntake   DailyIntake     @relation(fields: [dailyIntakeId], references: [id], onDelete: Cascade)
+  foodProduct   FoodProduct?    @relation(fields: [foodProductId], references: [id])
+
+  @@map("intake_entries")
+}
+
+model Goal {
+  id                  String    @id @default(cuid())
+  userId              String
+  type                GoalType
+  targetCalories      Float?
+  targetProtein       Float?
+  targetCarbohydrates Float?
+  targetFat           Float?
+  targetWeight        Float?
+  startDate           DateTime  @default(now())
+  endDate             DateTime?
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goals")
+}
+
+model Achievement {
+  id               String              @id @default(cuid())
+  name             String
+  description      String
+  category         AchievementCategory
+  tier             AchievementTier     @default(COMMON)
+  icon             String
+  condition        Json
+  createdAt        DateTime            @default(now())
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+  progress      Float       @default(100)
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model FavoriteFood {
+  id            String   @id @default(cuid())
+  userId        String
+  foodProductId String?
+  customFoodId  String?
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, foodProductId])
+  @@unique([userId, customFoodId])
+  @@map("favorite_foods")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum DietaryGoal {
+  WEIGHT_LOSS
+  MUSCLE_GAIN
+  MAINTENANCE
+  BULKING
+  CUTTING
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum NutriGrade {
+  A
+  B
+  C
+  D
+}
+
+enum DataSource {
+  OPENFOODFACTS
+  USDA
+  MANUAL
+  ML_DETECTED
+}
+
+enum DetectionMethod {
+  MANUAL
+  BARCODE
+  ML_VISION
+  VOICE
+}
+
+enum GoalType {
+  DAILY_CALORIES
+  DAILY_PROTEIN
+  DAILY_CARBS
+  DAILY_FAT
+  WEIGHT_TARGET
+  BODY_FAT
+  MUSCLE_GAIN
+}
+
+enum AchievementCategory {
+  STREAK
+  MILESTONE
+  NUTRITION
+  SCANNING
+  SOCIAL
+  CHALLENGE
+}
+
+enum AchievementTier {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
