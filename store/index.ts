@@ -1,4 +1,4 @@
-// Zustand stores for state management
+// Fixed version with all required methods
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import type {
@@ -101,7 +101,7 @@ export const useScannerStore = create<ScannerStore>()(
   }))
 );
 
-// UI Store
+// UI Store with notification methods
 interface UIStore extends UIState {
   // Actions
   setTheme: (theme: "light" | "dark") => void;
@@ -115,6 +115,12 @@ interface UIStore extends UIState {
   markNotificationRead: (id: string) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+
+  // Toast-like notification methods
+  showSuccess: (title: string, message: string) => void;
+  showError: (title: string, message: string, error?: any) => void;
+  showInfo: (title: string, message: string) => void;
+  showWarning: (title: string, message: string) => void;
 
   // Computed
   unreadNotificationCount: () => number;
@@ -165,6 +171,21 @@ export const useUIStore = create<UIStore>()(
           })),
         clearNotifications: () => set({ notifications: [] }),
 
+        // Toast-like methods
+        showSuccess: (title, message) => {
+          get().addNotification({ type: "success", title, message });
+        },
+        showError: (title, message, error) => {
+          if (error) console.error(error);
+          get().addNotification({ type: "error", title, message });
+        },
+        showInfo: (title, message) => {
+          get().addNotification({ type: "info", title, message });
+        },
+        showWarning: (title, message) => {
+          get().addNotification({ type: "warning", title, message });
+        },
+
         // Computed
         unreadNotificationCount: () =>
           get().notifications.filter((n) => !n.read).length,
@@ -180,7 +201,7 @@ export const useUIStore = create<UIStore>()(
   )
 );
 
-// Nutrition Store (for calculations and goals)
+// Nutrition Store with loadUserGoals
 interface NutritionStore {
   dailyGoals: {
     calories: number;
@@ -189,9 +210,11 @@ interface NutritionStore {
     fat: number;
     water: number;
   };
+  goalsLoading: boolean;
 
   // Actions
   updateDailyGoals: (goals: Partial<NutritionStore["dailyGoals"]>) => void;
+  loadUserGoals: () => Promise<void>;
   calculateCalorieNeeds: (profile: UserProfile) => number;
   calculateMacroSplit: (
     calories: number,
@@ -210,7 +233,7 @@ interface NutritionStore {
 export const useNutritionStore = create<NutritionStore>()(
   devtools(
     persist(
-      (set) => ({
+      (set, get) => ({
         // Initial state
         dailyGoals: {
           calories: 2000,
@@ -219,12 +242,39 @@ export const useNutritionStore = create<NutritionStore>()(
           fat: 67,
           water: 2000,
         },
+        goalsLoading: false,
 
         // Actions
         updateDailyGoals: (goals) =>
           set((state) => ({
             dailyGoals: { ...state.dailyGoals, ...goals },
           })),
+
+        loadUserGoals: async () => {
+          set({ goalsLoading: true });
+          try {
+            const response = await fetch("/api/users/goals");
+            if (response.ok) {
+              const data = await response.json();
+              if (data.data && data.data.length > 0) {
+                const goal = data.data[0];
+                set({
+                  dailyGoals: {
+                    calories: goal.targetCalories || 2000,
+                    protein: goal.targetProtein || 150,
+                    carbohydrates: goal.targetCarbohydrates || 250,
+                    fat: goal.targetFat || 67,
+                    water: 2000, // Default water goal
+                  },
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Failed to load user goals:", error);
+          } finally {
+            set({ goalsLoading: false });
+          }
+        },
 
         calculateCalorieNeeds: (profile) => {
           if (!profile.height || !profile.weight || !profile.dateOfBirth) {
