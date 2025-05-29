@@ -1,7 +1,7 @@
-// hooks/use-user-profile.ts - Custom hook for user profile management
+// Fixed with proper imports
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import type { User } from "@prisma/client";
+import type { User } from "@/lib/generated/prisma";
 
 interface UseUserProfile {
   profile: User | null;

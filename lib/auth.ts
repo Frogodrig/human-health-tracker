@@ -1,7 +1,6 @@
-// Auth utilities and user management
-import { auth, currentUser } from "@clerk/nextjs";
-import { PrismaClient } from "@prisma/client";
-import type { User } from "@prisma/client";
+// lib/auth.ts - Fixed with proper Clerk imports for app router
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { PrismaClient, User } from "@/lib/generated/prisma";
 
 const prisma = new PrismaClient();
 
@@ -10,7 +9,7 @@ const prisma = new PrismaClient();
  */
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return null;
