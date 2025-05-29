@@ -1,7 +1,7 @@
-// User profile management
+// Fixed with proper auth import
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
-import { PrismaClient } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
+import { PrismaClient } from "@/lib/generated/prisma";
 import { getCurrentUser, updateUserProfile } from "@/lib/auth";
 import type { APIErrorResponse, APISuccessResponse } from "@/types";
 
@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 // GET /api/users/profile - Get current user profile
 export async function GET() {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       const errorResponse: APIErrorResponse = {
@@ -53,7 +53,7 @@ export async function GET() {
 // POST /api/users/profile - Create/Update user profile
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       const errorResponse: APIErrorResponse = {
@@ -140,6 +140,9 @@ export async function POST(request: NextRequest) {
       },
       update: {
         targetCalories: dailyCalories,
+        targetProtein: dailyProtein,
+        targetCarbohydrates: dailyCarbs,
+        targetFat: dailyFat,
         updatedAt: new Date(),
       },
       create: {

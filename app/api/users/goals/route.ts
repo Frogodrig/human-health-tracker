@@ -1,7 +1,7 @@
-// User goals management
+// Fixed with proper imports
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs";
-import { PrismaClient } from "@prisma/client";
+import { auth } from "@clerk/nextjs/server";
+import { PrismaClient } from "@/lib/generated/prisma";
 import type { APIErrorResponse, APISuccessResponse } from "@/types";
 
 const prisma = new PrismaClient();
@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // GET /api/users/goals - Get user goals
 export async function GET() {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -47,7 +47,7 @@ export async function GET() {
 // POST /api/users/goals - Update user goals
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = auth();
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

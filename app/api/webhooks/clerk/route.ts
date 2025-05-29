@@ -1,9 +1,11 @@
-// app/api/webhooks/clerk/route.ts - Sync users to database
+// Fixed with proper imports
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
-import { PrismaClient } from "@prisma/client";
-import type { WebhookEvent } from "@clerk/nextjs/server";
+import { WebhookEvent } from "@clerk/nextjs/server";
+
+// Import Prisma client from generated location
+import { PrismaClient } from "@/lib/generated/prisma";
 
 const prisma = new PrismaClient();
 
