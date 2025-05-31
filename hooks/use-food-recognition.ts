@@ -209,8 +209,24 @@ export function useFoodRecognition(): UseFoodRecognition {
     return model;
   };
 
+  interface PreprocessedImage {
+    width: number;
+    height: number;
+    pixels: Uint8Array;
+  }
+
+  interface ImageProcessingResult {
+    detections: Array<{
+      class: string;
+      confidence: number;
+      bbox: [number, number, number, number];
+    }>;
+  }
+
   // Preprocess image for model input
-  const preprocessImage = (imageElement: HTMLImageElement): tf.Tensor => {
+  const preprocessImage = (
+    imageElement: HTMLImageElement
+  ): PreprocessedImage => {
     return tf.tidy(() => {
       // Convert image to tensor
       const tensor = tf.browser.fromPixels(imageElement);

@@ -1,4 +1,4 @@
-// Achievements and gamification
+// Fixed with proper types
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAchievements } from "@/hooks/use-achievements";
+import type { AchievementWithProgress } from "@/types/dashboard";
 import {
   Trophy,
   Star,
@@ -69,7 +70,10 @@ export default function AchievementsPage() {
           <CardContent className="p-6 text-center">
             <Star className="h-8 w-8 mx-auto mb-2 text-purple-500" />
             <div className="text-2xl font-bold">
-              {Math.round((totalUnlocked / totalAvailable) * 100)}%
+              {totalAvailable > 0
+                ? Math.round((totalUnlocked / totalAvailable) * 100)
+                : 0}
+              %
             </div>
             <p className="text-sm text-gray-600">Completion</p>
           </CardContent>
@@ -152,35 +156,36 @@ export default function AchievementsPage() {
           </div>
         </TabsContent>
 
-        {["streak", "milestone", "nutrition", "scanning"].map((category) => (
-          <TabsContent key={category} value={category} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {achievements
-                .filter((a) => a.category.toLowerCase() === category)
-                .map((achievement) => (
-                  <AchievementCard
-                    key={achievement.id}
-                    achievement={achievement}
-                    unlocked={achievement.unlocked}
-                  />
-                ))}
-            </div>
-          </TabsContent>
-        ))}
+        {(["streak", "milestone", "nutrition", "scanning"] as const).map(
+          (category) => (
+            <TabsContent key={category} value={category} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {achievements
+                  .filter((a) => a.category.toLowerCase() === category)
+                  .map((achievement) => (
+                    <AchievementCard
+                      key={achievement.id}
+                      achievement={achievement}
+                      unlocked={achievement.unlocked}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+          )
+        )}
       </Tabs>
     </div>
   );
 }
 
 // Achievement Card Component
-function AchievementCard({
-  achievement,
-  unlocked,
-}: {
-  achievement: any;
+interface AchievementCardProps {
+  achievement: AchievementWithProgress;
   unlocked: boolean;
-}) {
-  const getTierColor = (tier: string) => {
+}
+
+function AchievementCard({ achievement, unlocked }: AchievementCardProps) {
+  const getTierColor = (tier: string): string => {
     switch (tier.toLowerCase()) {
       case "legendary":
         return "bg-gradient-to-r from-yellow-400 to-orange-500 text-white";

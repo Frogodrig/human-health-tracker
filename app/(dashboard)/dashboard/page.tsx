@@ -22,6 +22,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
+import type {
+  MealRowProps,
+  StatRowProps,
+  NutritionalInfo,
+  NutritionCardProps,
+} from "@/types/dashboard";
 
 export default function DashboardPage() {
   const { user: authUser } = useUser();
@@ -35,7 +41,7 @@ export default function DashboardPage() {
   const { showInfo } = useUIStore();
 
   // Mock intake data for now - will be replaced with real API
-  const mockIntake = {
+  const mockIntake: NutritionalInfo = {
     calories: 1456,
     protein: 89,
     carbohydrates: 178,
@@ -275,13 +281,7 @@ function NutritionCard({
   target,
   icon: Icon,
   unit,
-}: {
-  title: string;
-  current: number;
-  target: number;
-  icon: any;
-  unit: string;
-}) {
+}: NutritionCardProps) {
   const { getProgressPercentage } = useNutritionStore();
   const progress = getProgressPercentage(current, target);
   const remaining = Math.max(0, target - current);
@@ -307,15 +307,7 @@ function NutritionCard({
   );
 }
 
-function MealRow({
-  meal,
-  hasItems,
-  calories,
-}: {
-  meal: string;
-  hasItems: boolean;
-  calories: number;
-}) {
+function MealRow({ meal, hasItems, calories }: MealRowProps) {
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center space-x-3">
@@ -336,15 +328,7 @@ function MealRow({
   );
 }
 
-function StatRow({
-  label,
-  value,
-  variant = "default",
-}: {
-  label: string;
-  value: string;
-  variant?: "default" | "secondary" | "outline";
-}) {
+function StatRow({ label, value, variant = "default" }: StatRowProps) {
   return (
     <div className="flex justify-between items-center">
       <span className="text-sm font-medium">{label}</span>

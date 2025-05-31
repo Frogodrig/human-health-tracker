@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Scan, Keyboard, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import Link from "next/link";
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
+import Image from "next/image";
 
 export default function ScanPage() {
   const [showScanner, setShowScanner] = useState(false);
@@ -158,7 +159,7 @@ export default function ScanPage() {
           <CardContent>
             <div className="flex gap-4">
               {product.imageUrl && (
-                <img
+                <Image
                   src={product.imageUrl}
                   alt={product.name}
                   className="w-16 h-16 object-cover rounded-lg"
