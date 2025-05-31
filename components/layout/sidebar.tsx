@@ -31,7 +31,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
 
   return (
     <div className="flex h-full flex-col bg-white shadow-sm">
@@ -44,18 +44,24 @@ export function Sidebar() {
       <div className="px-6 py-4 border-b">
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.imageUrl} />
+            {isLoaded && user?.imageUrl && <AvatarImage src={user.imageUrl} />}
             <AvatarFallback>
-              {user?.firstName?.[0]}
-              {user?.lastName?.[0]}
+              {isLoaded && user ? (
+                <>
+                  {user.firstName?.[0]}
+                  {user.lastName?.[0]}
+                </>
+              ) : (
+                "U"
+              )}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.fullName || "User"}
+              {isLoaded && user ? user.fullName : "Loading..."}
             </p>
             <p className="text-xs text-gray-500 truncate">
-              {user?.primaryEmailAddress?.emailAddress}
+              {isLoaded && user?.primaryEmailAddress?.emailAddress}
             </p>
           </div>
         </div>
