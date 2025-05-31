@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useUIStore } from "@/store";
 import { useFoodRecognition } from "@/hooks/use-food-recognition";
-import type { DetectedFood } from "@/types";
+import type { DetectedFood } from "@/types/ml";
 import {
   Camera,
   Upload,
@@ -110,6 +110,7 @@ export default function CameraPage() {
         return;
       }
 
+      stopCamera();
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
@@ -119,15 +120,16 @@ export default function CameraPage() {
       };
       reader.readAsDataURL(file);
     },
-    [showError, detectFoods, clearDetections]
+    [showError, detectFoods, clearDetections, stopCamera]
   );
 
   // Retake photo
   const retakePhoto = useCallback(() => {
     setCapturedImage(null);
     clearDetections();
+    stopCamera();
     startCamera();
-  }, [startCamera, clearDetections]);
+  }, [startCamera, clearDetections, stopCamera]);
 
   // Add detected food to intake
   const addFoodToIntake = async (
@@ -162,12 +164,19 @@ export default function CameraPage() {
     }
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount and when component updates
   useEffect(() => {
     return () => {
       stopCamera();
     };
   }, [stopCamera]);
+
+  // Additional cleanup when captured image changes
+  useEffect(() => {
+    if (capturedImage) {
+      stopCamera();
+    }
+  }, [capturedImage, stopCamera]);
 
   return (
     <div className="space-y-6">
@@ -199,7 +208,7 @@ export default function CameraPage() {
             <div className="relative bg-black rounded-lg overflow-hidden">
               <video
                 ref={videoRef}
-                className="w-full h-64 object-cover"
+                className="w-full h-[480px] object-cover"
                 playsInline
                 muted
               />
@@ -276,26 +285,31 @@ export default function CameraPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Image Preview */}
-            <div className="relative">
+            <div className="relative w-full aspect-video overflow-hidden rounded-lg">
               <Image
                 src={capturedImage}
                 alt="Captured food"
-                className="w-full h-64 object-cover rounded-lg"
+                width={1280}
+                height={720}
+                className="w-full h-full object-contain"
+                priority
               />
 
               {/* Detection Overlays */}
               {detectedFoods.map((food, index) => (
                 <div
                   key={index}
-                  className="absolute border-2 border-green-400 bg-green-400/20 rounded"
+                  className="absolute border border-green-400/50 bg-green-400/10 rounded-lg pointer-events-none backdrop-blur-[2px]"
                   style={{
                     left: `${food.boundingBox.x}%`,
                     top: `${food.boundingBox.y}%`,
                     width: `${food.boundingBox.width}%`,
                     height: `${food.boundingBox.height}%`,
+                    transform: "translateZ(0)", // Force GPU acceleration
+                    boxShadow: "0 0 0 1px rgba(74, 222, 128, 0.1)", // Subtle glow effect
                   }}
                 >
-                  <div className="absolute -top-6 left-0 bg-green-400 text-white text-xs px-2 py-1 rounded">
+                  <div className="absolute -top-6 left-0 bg-green-400/90 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm whitespace-nowrap shadow-sm">
                     {food.name} ({Math.round(food.confidence * 100)}%)
                   </div>
                 </div>

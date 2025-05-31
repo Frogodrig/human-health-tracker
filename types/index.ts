@@ -1,4 +1,5 @@
 // Core type definitions for the health tracker
+import type { DetectedFood, MLModelConfig, DetectionMethod } from "./ml";
 
 export interface NutritionalInfo {
   calories: number;
@@ -27,22 +28,6 @@ export interface ProductData extends NutritionalInfo {
   verified: boolean;
 }
 
-export interface DetectedFood {
-  name: string;
-  confidence: number;
-  boundingBox: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
-  estimatedPortion: {
-    quantity: number;
-    unit: string;
-  };
-  nutrition: NutritionalInfo;
-}
-
 export interface FoodEntry {
   id: string;
   productId?: string;
@@ -51,7 +36,7 @@ export interface FoodEntry {
   unit: string;
   mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
   consumedAt: Date;
-  detectedBy: "MANUAL" | "BARCODE" | "ML_VISION";
+  detectedBy: DetectionMethod;
   nutrition: NutritionalInfo;
 }
 
@@ -100,13 +85,6 @@ export interface Achievement {
   icon: string;
   unlockedAt?: Date;
   progress: number;
-}
-
-export interface MLModelConfig {
-  modelUrl: string;
-  version: string;
-  inputShape: [number, number, number];
-  confidenceThreshold: number;
 }
 
 // Barcode Scanner Types
@@ -267,7 +245,6 @@ export interface APISuccessResponse<T> {
 // Utility Types
 export type NutrientKey = keyof NutritionalInfo;
 export type MealType = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
-export type DetectionMethod = "MANUAL" | "BARCODE" | "ML_VISION";
 export type NutriGrade = "A" | "B" | "C" | "D";
 
 // API Endpoints Configuration
