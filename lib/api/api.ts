@@ -1,4 +1,10 @@
 import type { ProductData, OpenFoodFactsResponse } from "@/types";
+import type {
+  APIClientOptions,
+  APIRequestOptions,
+  OpenFoodFactsProduct,
+  APIResponse,
+} from "@/types/api";
 import { isValidBarcode, calculateNutriGrade } from "../utils/utils";
 
 // API Configuration
@@ -26,10 +32,7 @@ class APIClient {
   private defaultHeaders: Record<string, string>;
   private timeout: number;
 
-  constructor(
-    baseURL: string,
-    options: { timeout?: number; headers?: Record<string, string> } = {}
-  ) {
+  constructor(baseURL: string, options: APIClientOptions = {}) {
     this.baseURL = baseURL;
     this.timeout = options.timeout || 10000; // 10 seconds default
     this.defaultHeaders = {
@@ -41,7 +44,7 @@ class APIClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit & { timeout?: number } = {}
+    options: APIRequestOptions = {}
   ): Promise<T> {
     const { timeout = this.timeout, ...fetchOptions } = options;
     const url = `${this.baseURL}${endpoint}`;
@@ -98,15 +101,18 @@ class APIClient {
     }
   }
 
-  async get<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  async get<T>(
+    endpoint: string,
+    options?: APIRequestOptions
+  ): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, { method: "GET", ...options });
   }
 
   async post<T>(
     endpoint: string,
-    data?: any,
-    options?: RequestInit
-  ): Promise<T> {
+    data?: Record<string, unknown>,
+    options?: APIRequestOptions
+  ): Promise<APIResponse<T>> {
     return this.request<T>(endpoint, {
       method: "POST",
       body: data ? JSON.stringify(data) : undefined,
@@ -116,8 +122,8 @@ class APIClient {
 
   async put<T>(
     endpoint: string,
-    data?: any,
-    options?: RequestInit
+    data?: unknown,
+    options?: APIRequestOptions
   ): Promise<T> {
     return this.request<T>(endpoint, {
       method: "PUT",
@@ -126,7 +132,7 @@ class APIClient {
     });
   }
 
-  async delete<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  async delete<T>(endpoint: string, options?: APIRequestOptions): Promise<T> {
     return this.request<T>(endpoint, { method: "DELETE", ...options });
   }
 }
@@ -144,9 +150,11 @@ export const internalAPIClient = new APIClient(INTERNAL_API_BASE_URL, {
 });
 
 // Transform OpenFoodFacts response to our ProductData format
-export function transformOpenFoodFactsProduct(
-  response: OpenFoodFactsResponse
-): ProductData | null {
+export function transformOpenFoodFactsProduct(response: {
+  product: OpenFoodFactsProduct;
+  status: number;
+  status_verbose: string;
+}): ProductData | null {
   try {
     if (!response?.product) {
       console.warn("No product data in response:", response);

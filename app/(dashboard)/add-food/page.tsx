@@ -31,6 +31,33 @@ import {
   Check,
 } from "lucide-react";
 
+interface SearchResult {
+  id: string;
+  name: string;
+  brand?: string;
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+  nutriGrade?: "A" | "B" | "C" | "D";
+}
+
+interface FoodEntrySubmission {
+  name: string;
+  brand?: string;
+  servingSize: number;
+  servingUnit: string;
+  quantity: number;
+  mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+  nutrition: {
+    calories: number;
+    protein: number;
+    carbohydrates: number;
+    fat: number;
+  };
+  productId?: string;
+}
+
 export default function AddFoodPage() {
   const router = useRouter();
   const { showSuccess, showError } = useUIStore();
@@ -106,7 +133,7 @@ export default function AddFoodPage() {
   };
 
   // Submit food entry
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!manualForm.name.trim()) {

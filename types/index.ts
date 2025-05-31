@@ -255,10 +255,10 @@ export interface APIErrorResponse {
   error: string;
   code?: string;
   status?: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
-export interface APISuccessResponse<T = any> {
+export interface APISuccessResponse<T> {
   data: T;
   message?: string;
   timestamp?: string;
