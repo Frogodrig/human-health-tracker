@@ -21,6 +21,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useUserProfile } from "@/hooks/use-user-profile";
 import { useUIStore } from "@/store";
+import { useTheme } from "next-themes";
 import {
   User,
   Settings,
@@ -46,7 +47,8 @@ export default function SettingsPage() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { profile, updateProfile, loading: profileLoading } = useUserProfile();
-  const { theme, setTheme, showSuccess, showError } = useUIStore();
+  const { showSuccess, showError } = useUIStore();
+  const { theme, setTheme } = useTheme();
 
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("profile");
@@ -510,6 +512,12 @@ export default function SettingsPage() {
                   <RadioGroupItem value="dark" id="dark" />
                   <Label htmlFor="dark" className="cursor-pointer">
                     Dark Mode
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="system" id="system" />
+                  <Label htmlFor="system" className="cursor-pointer">
+                    System (Auto)
                   </Label>
                 </div>
               </RadioGroup>

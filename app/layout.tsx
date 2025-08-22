@@ -14,11 +14,16 @@ export const metadata: Metadata = {
     "Track your nutrition with AI-powered food recognition and barcode scanning",
   manifest: "/manifest.json",
   themeColor: "#10b981",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -29,7 +34,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
-        <body className={inter.className}>
+        <body className={`${inter.className} bg-background text-foreground`}>
           <Providers>
             {children}
             <Toaster />

@@ -99,86 +99,98 @@ export async function POST(request: NextRequest) {
       dateOfBirth,
     } = body;
 
-    // Validate required fields
-    if (
-      !name ||
-      !gender ||
-      !height ||
-      !weight ||
-      !activityLevel ||
-      !dietaryGoals
-    ) {
+    // Validate that at least some data is provided
+    if (!name && !gender && !height && !weight && !activityLevel && !dietaryGoals && !dateOfBirth) {
       const errorResponse: APIErrorResponse = {
-        error: "Missing required fields",
+        error: "No data provided for update",
         code: "VALIDATION_ERROR",
         status: 400,
-        details: {
-          required: [
-            "name",
-            "gender",
-            "height",
-            "weight",
-            "activityLevel",
-            "dietaryGoals",
-          ],
-        },
       };
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // Calculate basic nutritional goals
-    const { dailyCalories, dailyProtein, dailyCarbs, dailyFat } =
-      calculateNutritionalGoals({
-        weight,
-        height,
-        gender,
-        activityLevel,
-        dietaryGoals,
-        age: dateOfBirth
-          ? new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
-          : 25,
-      });
+    // Get current user for existing data
+    const currentUser = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!currentUser) {
+      const errorResponse: APIErrorResponse = {
+        error: "User not found",
+        code: "USER_NOT_FOUND",
+        status: 404,
+      };
+      return NextResponse.json(errorResponse, { status: 404 });
+    }
+
+    // Prepare update data, filtering out undefined values
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (gender !== undefined) updateData.gender = gender;
+    if (height !== undefined) updateData.height = Number(height);
+    if (weight !== undefined) updateData.weight = Number(weight);
+    if (activityLevel !== undefined) updateData.activityLevel = activityLevel;
+    if (dietaryGoals !== undefined) updateData.dietaryGoals = dietaryGoals;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    updateData.updatedAt = new Date();
+
+    // Calculate nutritional goals only if we have all required data
+    let goalUpdate = null;
+    const finalWeight = weight !== undefined ? Number(weight) : currentUser.weight;
+    const finalHeight = height !== undefined ? Number(height) : currentUser.height;
+    const finalGender = gender !== undefined ? gender : currentUser.gender;
+    const finalActivityLevel = activityLevel !== undefined ? activityLevel : currentUser.activityLevel;
+    const finalDietaryGoals = dietaryGoals !== undefined ? dietaryGoals : currentUser.dietaryGoals;
+    const finalDateOfBirth = dateOfBirth !== undefined 
+      ? (dateOfBirth ? new Date(dateOfBirth) : null)
+      : currentUser.dateOfBirth;
+
+    if (finalWeight && finalHeight && finalGender && finalActivityLevel && finalDietaryGoals) {
+      const { dailyCalories, dailyProtein, dailyCarbs, dailyFat } =
+        calculateNutritionalGoals({
+          weight: finalWeight,
+          height: finalHeight,
+          gender: finalGender,
+          activityLevel: finalActivityLevel,
+          dietaryGoals: finalDietaryGoals,
+          age: finalDateOfBirth
+            ? new Date().getFullYear() - finalDateOfBirth.getFullYear()
+            : 25,
+        });
+
+      goalUpdate = {
+        targetCalories: dailyCalories,
+        targetProtein: dailyProtein,
+        targetCarbohydrates: dailyCarbs,
+        targetFat: dailyFat,
+        updatedAt: new Date(),
+      };
+    }
 
     // Update user profile
     const updatedUser = await prisma.user.update({
       where: { clerkId: userId },
-      data: {
-        name,
-        gender,
-        height,
-        weight,
-        activityLevel,
-        dietaryGoals,
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
 
-    // Create or update goals
-    await prisma.goal.upsert({
-      where: {
-        userId_type: {
+    // Create or update goals if we have the data
+    if (goalUpdate) {
+      await prisma.goal.upsert({
+        where: {
+          userId_type: {
+            userId: updatedUser.id,
+            type: "DAILY_CALORIES",
+          },
+        },
+        update: goalUpdate,
+        create: {
           userId: updatedUser.id,
           type: "DAILY_CALORIES",
+          ...goalUpdate,
+          isActive: true,
         },
-      },
-      update: {
-        targetCalories: dailyCalories,
-        targetProtein: dailyProtein,
-        targetCarbohydrates: dailyCarbs,
-        targetFat: dailyFat,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId: updatedUser.id,
-        type: "DAILY_CALORIES",
-        targetCalories: dailyCalories,
-        targetProtein: dailyProtein,
-        targetCarbohydrates: dailyCarbs,
-        targetFat: dailyFat,
-        isActive: true,
-      },
-    });
+      });
+    }
 
     const successResponse: APISuccessResponse<UserProfile> = {
       data: {

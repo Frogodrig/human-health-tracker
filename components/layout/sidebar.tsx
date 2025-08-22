@@ -35,14 +35,14 @@ export function Sidebar() {
   const { user, isLoaded } = useUser();
 
   return (
-    <div className="flex h-full flex-col bg-white shadow-sm">
+    <div className="flex h-full flex-col bg-card shadow-sm border-r">
       {/* Logo */}
       <div className="flex h-16 items-center px-6">
-        <h1 className="text-xl font-bold text-green-600">HealthTracker</h1>
+        <h1 className="text-xl font-bold text-primary">HealthTracker</h1>
       </div>
 
       {/* User Profile */}
-      <div className="px-6 py-4 border-b">
+      <div className="px-6 py-4 border-b border-border">
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
             {isLoaded && user?.imageUrl && <AvatarImage src={user.imageUrl} />}
@@ -58,10 +58,10 @@ export function Sidebar() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-foreground truncate">
               {isLoaded && user ? user.fullName : "Loading..."}
             </p>
-            <p className="text-xs text-gray-500 truncate">
+            <p className="text-xs text-muted-foreground truncate">
               {isLoaded && user?.primaryEmailAddress?.emailAddress}
             </p>
           </div>
@@ -78,7 +78,7 @@ export function Sidebar() {
                 variant={isActive ? "default" : "ghost"}
                 className={cn(
                   "w-full justify-start h-10",
-                  isActive && "bg-green-100 text-green-700 hover:bg-green-100"
+                  isActive && "bg-primary/10 text-primary hover:bg-primary/10"
                 )}
               >
                 <item.icon className="mr-3 h-4 w-4" />
@@ -90,8 +90,8 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t">
-        <p className="text-xs text-gray-500 text-center">v1.0.0 MVP</p>
+      <div className="p-4 border-t border-border">
+        <p className="text-xs text-muted-foreground text-center">v1.0.0 MVP</p>
       </div>
     </div>
   );
