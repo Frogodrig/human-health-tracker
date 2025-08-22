@@ -139,28 +139,28 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <NutritionCard
           title="Calories"
-          current={mockIntake.calories}
+          current={mockIntake.calories || 0}
           target={dailyGoals.calories}
           icon={Target}
           unit=""
         />
         <NutritionCard
           title="Protein"
-          current={mockIntake.protein}
+          current={mockIntake.protein || 0}
           target={dailyGoals.protein}
           icon={TrendingUp}
           unit="g"
         />
         <NutritionCard
           title="Carbs"
-          current={mockIntake.carbohydrates}
+          current={mockIntake.carbohydrates || 0}
           target={dailyGoals.carbohydrates}
           icon={CalendarDays}
           unit="g"
         />
         <NutritionCard
           title="Fat"
-          current={mockIntake.fat}
+          current={mockIntake.fat || 0}
           target={dailyGoals.fat}
           icon={Target}
           unit="g"

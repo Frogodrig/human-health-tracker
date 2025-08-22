@@ -4,19 +4,16 @@ export interface BarcodeResult {
   confidence: number;
 }
 
-export interface QuaggaJSReaderConfig {
-  format: string;
-  config: {
-    supplements: string[];
-  };
-}
+// Supported barcode formats for ZXing
+export type ZXingBarcodeFormat =
+  | "ean_13"
+  | "ean_8"
+  | "upc_a"
+  | "upc_e"
+  | "code_128"
+  | "code_39";
 
-export interface QuaggaJSCodeReader {
-  format: string;
-  config: {
-    supplements: string[];
-  };
-}
+// Add more as needed for your app
 
 export interface ScannerConfig {
   width: number;
@@ -50,7 +47,7 @@ export interface QuaggaConfig {
   };
   numOfWorkers: number;
   decoder: {
-    readers: QuaggaJSReaderConfig[];
+    readers: string[];
     debug: {
       drawBoundingBox: boolean;
       showFrequency: boolean;

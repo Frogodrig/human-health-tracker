@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -22,12 +21,13 @@ import {
   TrendingUp,
   TrendingDown,
   Target,
-  Calendar,
   Award,
   Activity,
   Zap,
   BarChart3,
 } from "lucide-react";
+import { MacroPieChart } from "@/components/charts/macro-pie-chart";
+import { NutrientRadarChart } from "@/components/charts/nutrient-radar-chart";
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("7d");
@@ -92,7 +92,6 @@ export default function AnalyticsPage() {
           unit="calories"
           icon={Activity}
           trend={12}
-          color="blue"
         />
         <MetricCard
           title="Goal Achievement"
@@ -100,7 +99,6 @@ export default function AnalyticsPage() {
           unit="%"
           icon={Target}
           trend={5}
-          color="green"
         />
         <MetricCard
           title="Foods Logged"
@@ -108,7 +106,6 @@ export default function AnalyticsPage() {
           unit="items"
           icon={BarChart3}
           trend={-2}
-          color="purple"
         />
         <MetricCard
           title="Current Streak"
@@ -116,7 +113,6 @@ export default function AnalyticsPage() {
           unit="days"
           icon={Zap}
           trend={8}
-          color="orange"
         />
       </div>
 
@@ -141,41 +137,58 @@ export default function AnalyticsPage() {
                 {weeklyData && <NutritionChart data={weeklyData} />}
               </CardContent>
             </Card>
-
-            {/* Goal Progress */}
+            {/* Macro Pie Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Current Goals</CardTitle>
+                <CardTitle>Macro Distribution (Last 7 Days)</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {goalProgress.map((goal, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{goal.name}</span>
-                      <span className="text-sm text-gray-600">
-                        {goal.current}/{goal.target} {goal.unit}
-                      </span>
-                    </div>
-                    <Progress value={goal.percentage} className="h-2" />
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>{goal.percentage}% complete</span>
-                      <span>
-                        {goal.remaining} {goal.unit} remaining
-                      </span>
-                    </div>
-                  </div>
-                ))}
+              <CardContent>
+                {weeklyData && weeklyData.length > 0 && (
+                  <MacroPieChart
+                    protein={weeklyData.reduce((a, b) => a + b.protein, 0)}
+                    carbohydrates={weeklyData.reduce(
+                      (a, b) => a + b.carbohydrates,
+                      0
+                    )}
+                    fat={weeklyData.reduce((a, b) => a + b.fat, 0)}
+                  />
+                )}
               </CardContent>
             </Card>
           </div>
-
-          {/* Macro Distribution */}
+          {/* Nutrient Radar Chart */}
           <Card>
             <CardHeader>
-              <CardTitle>Average Macro Distribution (Last 7 Days)</CardTitle>
+              <CardTitle>Nutrient Profile vs. Goals</CardTitle>
             </CardHeader>
             <CardContent>
-              <MacroDistributionChart weeklyData={weeklyData} />
+              {goalProgress && weeklyData && weeklyData.length > 0 && (
+                <NutrientRadarChart
+                  data={{
+                    calories: {
+                      current: weeklyData.reduce((a, b) => a + b.calories, 0),
+                      goal: goalProgress[0]?.target || 2000,
+                    },
+                    protein: {
+                      current: weeklyData.reduce((a, b) => a + b.protein, 0),
+                      goal: goalProgress[1]?.target || 50,
+                    },
+                    carbohydrates: {
+                      current: weeklyData.reduce(
+                        (a, b) => a + b.carbohydrates,
+                        0
+                      ),
+                      goal: goalProgress[2]?.target || 250,
+                    },
+                    fat: {
+                      current: weeklyData.reduce((a, b) => a + b.fat, 0),
+                      goal: goalProgress[3]?.target || 70,
+                    },
+                    fiber: { current: 0, goal: 30 },
+                    sodium: { current: 0, goal: 2300 },
+                  }}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -296,38 +309,25 @@ export default function AnalyticsPage() {
   );
 }
 
-// Helper Components
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MetricCard({
   title,
   value,
   unit,
   icon: Icon,
   trend,
-  color,
 }: {
   title: string;
   value: number;
   unit: string;
   icon: any;
   trend: number;
-  color: string;
 }) {
-  const colorClasses = {
-    blue: "text-blue-600 bg-blue-100",
-    green: "text-green-600 bg-green-100",
-    purple: "text-purple-600 bg-purple-100",
-    orange: "text-orange-600 bg-orange-100",
-  };
-
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
-          <div
-            className={`p-2 rounded-full ${
-              colorClasses[color as keyof typeof colorClasses]
-            }`}
-          >
+          <div>
             <Icon className="h-4 w-4" />
           </div>
           <Badge
@@ -422,53 +422,7 @@ function StreakCard({
   );
 }
 
-function MacroDistributionChart({ weeklyData }: { weeklyData: any[] | null }) {
-  if (!weeklyData)
-    return <div className="h-32 bg-gray-100 rounded animate-pulse" />;
-
-  // Calculate average macros
-  const avgProtein =
-    weeklyData.reduce((sum, day) => sum + day.protein, 0) / weeklyData.length;
-  const avgCarbs =
-    weeklyData.reduce((sum, day) => sum + day.carbohydrates, 0) /
-    weeklyData.length;
-  const avgFat =
-    weeklyData.reduce((sum, day) => sum + day.fat, 0) / weeklyData.length;
-
-  const total = avgProtein + avgCarbs + avgFat;
-  const proteinPerc = Math.round((avgProtein / total) * 100);
-  const carbsPerc = Math.round((avgCarbs / total) * 100);
-  const fatPerc = Math.round((avgFat / total) * 100);
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-4 text-center">
-        <div>
-          <div className="text-lg font-bold text-blue-600">{proteinPerc}%</div>
-          <p className="text-sm">Protein</p>
-          <p className="text-xs text-gray-600">{Math.round(avgProtein)}g avg</p>
-        </div>
-        <div>
-          <div className="text-lg font-bold text-orange-600">{carbsPerc}%</div>
-          <p className="text-sm">Carbs</p>
-          <p className="text-xs text-gray-600">{Math.round(avgCarbs)}g avg</p>
-        </div>
-        <div>
-          <div className="text-lg font-bold text-purple-600">{fatPerc}%</div>
-          <p className="text-sm">Fat</p>
-          <p className="text-xs text-gray-600">{Math.round(avgFat)}g avg</p>
-        </div>
-      </div>
-
-      <div className="h-4 bg-gray-200 rounded-full overflow-hidden flex">
-        <div className="bg-blue-500" style={{ width: `${proteinPerc}%` }} />
-        <div className="bg-orange-500" style={{ width: `${carbsPerc}%` }} />
-        <div className="bg-purple-500" style={{ width: `${fatPerc}%` }} />
-      </div>
-    </div>
-  );
-}
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function BestDaysTable({ weeklyData }: { weeklyData: any[] | null }) {
   if (!weeklyData)
     return <div className="h-32 bg-gray-100 rounded animate-pulse" />;

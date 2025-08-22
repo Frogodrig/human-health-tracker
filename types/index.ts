@@ -1,15 +1,40 @@
 // Core type definitions for the health tracker
-import type { DetectedFood, MLModelConfig, DetectionMethod } from "./ml";
+import type { DetectedFood, DetectionMethod } from "./ml";
+
+// Re-export ML types for convenience
+export type { DetectedFood, DetectionMethod };
 
 export interface NutritionalInfo {
-  calories: number;
-  protein: number;
-  carbohydrates: number;
-  fat: number;
+  calories?: number;
+  protein?: number;
+  carbohydrates?: number;
+  fat?: number;
   fiber?: number;
   sodium?: number;
   sugars?: number;
   saturatedFat?: number;
+  water?: number;
+  cholesterol?: number;
+  transFat?: number;
+  monounsaturatedFat?: number;
+  polyunsaturatedFat?: number;
+  salt?: number;
+  potassium?: number;
+  calcium?: number;
+  iron?: number;
+  vitaminA?: number;
+  vitaminC?: number;
+  vitaminD?: number;
+  vitaminB6?: number;
+  vitaminB12?: number;
+  vitaminE?: number;
+  magnesium?: number;
+  zinc?: number;
+  sucrose?: number;
+  fructose?: number;
+  lactose?: number;
+  starch?: number;
+  alcohol?: number;
 }
 
 export interface ServingInfo {
@@ -26,6 +51,14 @@ export interface ProductData extends NutritionalInfo {
   nutriGrade?: "A" | "B" | "C" | "D";
   imageUrl?: string;
   verified: boolean;
+  ecoscore?: number;
+  ecoscoreGrade?: string;
+  novaGroup?: number;
+  ingredientsText?: string;
+  tracesTags?: string[];
+  packagingTags?: string[];
+  originsTags?: string[];
+  netWeight?: number; // in grams
 }
 
 export interface FoodEntry {
@@ -99,72 +132,6 @@ export interface ScannerConfig {
   height: number;
   facing: "environment" | "user";
   formats: string[];
-}
-
-// API Response Types - Fixed and comprehensive
-export interface OpenFoodFactsNutriments {
-  "energy-kcal"?: number;
-  "energy-kcal_100g"?: number;
-  proteins?: number;
-  proteins_100g?: number;
-  carbohydrates?: number;
-  carbohydrates_100g?: number;
-  fat?: number;
-  fat_100g?: number;
-  fiber?: number;
-  fiber_100g?: number;
-  sodium?: number;
-  sodium_100g?: number;
-  sugars?: number;
-  sugars_100g?: number;
-  "saturated-fat"?: number;
-  "saturated-fat_100g"?: number;
-  salt?: number;
-  salt_100g?: number;
-}
-
-export interface OpenFoodFactsProduct {
-  code?: string;
-  product_name?: string;
-  product_name_en?: string;
-  brands?: string;
-  image_url?: string;
-  image_front_url?: string;
-  image_front_small_url?: string;
-  nutriments?: OpenFoodFactsNutriments;
-  serving_quantity?: number | string;
-  serving_size?: string;
-  quantity?: string;
-  categories?: string;
-  labels?: string;
-  manufacturing_places?: string;
-  origins?: string;
-  packaging?: string;
-  stores?: string;
-  countries?: string;
-  ingredients_text?: string;
-  allergens?: string;
-  traces?: string;
-  nutrition_grades?: string;
-  nova_group?: number;
-  ecoscore_grade?: string;
-  nutriscore_grade?: string;
-}
-
-export interface OpenFoodFactsResponse {
-  code?: string;
-  product?: OpenFoodFactsProduct;
-  status: number;
-  status_verbose: string;
-}
-
-export interface OpenFoodFactsSearchResponse {
-  products: OpenFoodFactsProduct[];
-  count: number;
-  page: number;
-  page_count: number;
-  page_size: number;
-  skip: number;
 }
 
 // Store Types (Zustand)
@@ -319,7 +286,11 @@ export type ActivityLevel =
   | "MODERATE"
   | "ACTIVE"
   | "VERY_ACTIVE";
-export type DietaryGoal = "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE";
+export type DietaryGoal =
+  | "WEIGHT_LOSS"
+  | "MUSCLE_GAIN"
+  | "MAINTENANCE"
+  | "BULKING";
 export type Gender = "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY";
 export type AchievementCategory =
   | "STREAK"

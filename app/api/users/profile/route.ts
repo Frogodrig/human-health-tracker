@@ -2,8 +2,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@/lib/generated/prisma";
-import { getCurrentUser, updateUserProfile } from "@/lib/auth";
-import type { APIErrorResponse, APISuccessResponse } from "@/types";
+import { getCurrentUser, updateUserProfile, ensureUserExists } from "@/lib/auth";
+import type {
+  APIErrorResponse,
+  APISuccessResponse,
+  UserProfile,
+} from "@/types";
 
 const prisma = new PrismaClient();
 
@@ -21,19 +25,39 @@ export async function GET() {
       return NextResponse.json(errorResponse, { status: 401 });
     }
 
-    const user = await getCurrentUser();
+    // Ensure user exists in database (creates if doesn't exist)
+    const user = await ensureUserExists();
 
     if (!user) {
       const errorResponse: APIErrorResponse = {
-        error: "User not found",
-        code: "USER_NOT_FOUND",
-        status: 404,
+        error: "Failed to create or retrieve user",
+        code: "USER_CREATION_FAILED",
+        status: 500,
       };
-      return NextResponse.json(errorResponse, { status: 404 });
+      return NextResponse.json(errorResponse, { status: 500 });
     }
 
-    const successResponse: APISuccessResponse = {
-      data: user,
+    const successResponse: APISuccessResponse<UserProfile> = {
+      data: {
+        ...user,
+        name: user.name || "User",
+        avatar: user.avatar || undefined,
+        dateOfBirth: user.dateOfBirth || undefined,
+        gender: user.gender || undefined,
+        height: user.height || undefined,
+        weight: user.weight || undefined,
+        dietaryGoals: user.dietaryGoals as
+          | "WEIGHT_LOSS"
+          | "MUSCLE_GAIN"
+          | "MAINTENANCE",
+        goals: {
+          dailyCalories: 2000,
+          dailyProtein: 150,
+          dailyCarbs: 250,
+          dailyFat: 67,
+          waterIntake: 2000,
+        },
+      },
       message: "Profile retrieved successfully",
     };
 
@@ -156,8 +180,27 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const successResponse: APISuccessResponse = {
-      data: updatedUser,
+    const successResponse: APISuccessResponse<UserProfile> = {
+      data: {
+        ...updatedUser,
+        name: updatedUser.name || "User",
+        avatar: updatedUser.avatar || undefined,
+        dateOfBirth: updatedUser.dateOfBirth || undefined,
+        gender: updatedUser.gender || undefined,
+        height: updatedUser.height || undefined,
+        weight: updatedUser.weight || undefined,
+        dietaryGoals: updatedUser.dietaryGoals as
+          | "WEIGHT_LOSS"
+          | "MUSCLE_GAIN"
+          | "MAINTENANCE",
+        goals: {
+          dailyCalories: 2000,
+          dailyProtein: 150,
+          dailyCarbs: 250,
+          dailyFat: 67,
+          waterIntake: 2000,
+        },
+      },
       message: "Profile updated successfully",
     };
 

@@ -345,3 +345,38 @@ export const useNutritionStore = create<NutritionStore>()(
     )
   )
 );
+
+interface FoodRecognitionStore {
+  history: DetectedFood[];
+  addResult: (result: DetectedFood) => void;
+  clearHistory: () => void;
+  hydrate: () => void;
+}
+
+const LOCAL_STORAGE_KEY = "food-recognition-history";
+
+export const useFoodRecognitionStore = create<FoodRecognitionStore>(
+  (set, get) => ({
+    history: [],
+    addResult: (result) => {
+      const updated = [result, ...get().history].slice(0, 100); // Limit to 100 entries
+      set({ history: updated });
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    },
+    clearHistory: () => {
+      set({ history: [] });
+      localStorage.removeItem(LOCAL_STORAGE_KEY);
+    },
+    hydrate: () => {
+      const data = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (data) {
+        set({ history: JSON.parse(data) });
+      }
+    },
+  })
+);
+
+// Hydrate store on load (for SSR safety, check window)
+if (typeof window !== "undefined") {
+  useFoodRecognitionStore.getState().hydrate();
+}

@@ -7,6 +7,9 @@ import type {
   DetectionMethod,
 } from "./index";
 
+// Re-export NutritionalInfo for convenience
+export type { NutritionalInfo };
+
 // Achievement Types with proper typing
 export interface AchievementWithProgress extends BaseAchievement {
   unlocked: boolean;
@@ -180,7 +183,7 @@ export interface ProfileFormData {
   weight?: number;
   dateOfBirth?: Date | string;
   activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE";
-  dietaryGoals: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE";
+  dietaryGoals: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "BULKING";
 }
 
 // API Response Types with proper generics

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,8 @@ import type { ProfileSetupForm } from "@/types";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { user, signOut } = useUser();
+  const { user } = useUser();
+  const { signOut } = useClerk();
   const { profile, updateProfile, loading: profileLoading } = useUserProfile();
   const { theme, setTheme, showSuccess, showError } = useUIStore();
 
@@ -53,14 +54,14 @@ export default function SettingsPage() {
   // Form state
   const [formData, setFormData] = useState<Partial<ProfileSetupForm>>({
     name: profile?.name || "",
-    gender: profile?.gender,
-    height: profile?.height,
-    weight: profile?.weight,
+    gender: profile?.gender || undefined,
+    height: profile?.height || undefined,
+    weight: profile?.weight || undefined,
     dateOfBirth: profile?.dateOfBirth
       ? new Date(profile.dateOfBirth)
       : undefined,
     activityLevel: profile?.activityLevel || "MODERATE",
-    dietaryGoals: profile?.dietaryGoals || "MAINTENANCE",
+    dietaryGoals: (profile?.dietaryGoals as any) || "MAINTENANCE",
   });
 
   // Notification preferences (mock for now)
@@ -392,7 +393,7 @@ export default function SettingsPage() {
                 </div>
                 <Separator />
                 <div className="flex justify-between items-center">
-                  <div>
+                  <div>~
                     <p className="font-medium">Account Created</p>
                     <p className="text-sm text-gray-600">
                       {user?.createdAt

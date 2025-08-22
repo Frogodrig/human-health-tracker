@@ -19,6 +19,7 @@ import {
   X,
   RotateCcw,
   Zap,
+  Timer,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -39,12 +40,36 @@ export default function CameraPage() {
     error: mlError,
     confidence,
     clearDetections,
+    processingTime,
   } = useFoodRecognition();
+
+  // Check camera permissions
+  const checkCameraPermission = useCallback(async () => {
+    try {
+      const result = await navigator.permissions.query({
+        name: "camera" as PermissionName,
+      });
+      return result.state;
+    } catch {
+      return "unknown";
+    }
+  }, []);
 
   // Initialize camera
   const startCamera = useCallback(async () => {
     try {
       setCameraError(null);
+      setIsStreaming(false); // Reset streaming state
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API not supported in this browser");
+      }
+
+      // Check current permission state
+      const permissionState = await checkCameraPermission();
+      console.log("Camera permission state:", permissionState);
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "environment", // Use back camera on mobile
@@ -55,14 +80,49 @@ export default function CameraPage() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+
+        // Wait for video to be ready
+        await new Promise((resolve, reject) => {
+          if (!videoRef.current) {
+            reject(new Error("Video element not found"));
+            return;
+          }
+
+          const video = videoRef.current;
+          video.onloadedmetadata = () => {
+            video.play().then(resolve).catch(reject);
+          };
+          video.onerror = () => reject(new Error("Video failed to load"));
+
+          // Timeout after 10 seconds
+          setTimeout(
+            () => reject(new Error("Camera initialization timeout")),
+            10000
+          );
+        });
+
         setIsStreaming(true);
       }
     } catch (error) {
       console.error("Camera access error:", error);
-      setCameraError(
-        "Unable to access camera. Please check permissions and try again."
-      );
+      let errorMessage =
+        "Unable to access camera. Please check permissions and try again.";
+
+      if (error instanceof Error) {
+        if (error.name === "NotAllowedError") {
+          errorMessage =
+            "Camera permission denied. Please allow camera access and try again.";
+        } else if (error.name === "NotFoundError") {
+          errorMessage =
+            "No camera found. Please check your device has a camera.";
+        } else if (error.name === "NotSupportedError") {
+          errorMessage = "Camera not supported in this browser.";
+        } else if (error.message.includes("timeout")) {
+          errorMessage = "Camera initialization timed out. Please try again.";
+        }
+      }
+
+      setCameraError(errorMessage);
     }
   }, []);
 
@@ -142,8 +202,8 @@ export default function CameraPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: food.name,
-          quantity: food.estimatedPortion.quantity,
-          servingUnit: food.estimatedPortion.unit,
+          quantity: food.estimatedPortion?.quantity || 1,
+          servingUnit: food.estimatedPortion?.unit || "piece",
           mealType,
           nutrition: food.nutrition,
           detectedBy: "ML_VISION",
@@ -164,12 +224,15 @@ export default function CameraPage() {
     }
   };
 
-  // Cleanup on unmount and when component updates
+  // Auto-start camera when component mounts
   useEffect(() => {
+    startCamera();
+
+    // Cleanup on unmount
     return () => {
       stopCamera();
     };
-  }, [stopCamera]);
+  }, [startCamera, stopCamera]);
 
   // Additional cleanup when captured image changes
   useEffect(() => {
@@ -185,6 +248,13 @@ export default function CameraPage() {
         <p className="text-gray-600">
           Take a photo of your food and let AI identify and track the nutrition
         </p>
+        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong> If you&apos;ve already granted camera
+            permission for barcode scanning, you may need to click &quot;Request
+            Permission&quot; to allow camera access for food recognition.
+          </p>
+        </div>
       </div>
 
       {/* Camera Interface */}
@@ -200,7 +270,32 @@ export default function CameraPage() {
             {cameraError && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{cameraError}</AlertDescription>
+                <AlertDescription className="space-y-2">
+                  <p>{cameraError}</p>
+                  <div className="flex gap-2 mt-2">
+                    <Button onClick={startCamera} size="sm" variant="outline">
+                      <RotateCcw className="mr-2 h-3 w-3" />
+                      Retry Camera
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        // Force browser to show permission prompt again
+                        navigator.mediaDevices
+                          .getUserMedia({ video: true })
+                          .then((stream) => {
+                            stream.getTracks().forEach((track) => track.stop());
+                            startCamera();
+                          })
+                          .catch(() => startCamera());
+                      }}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Camera className="mr-2 h-3 w-3" />
+                      Request Permission
+                    </Button>
+                  </div>
+                </AlertDescription>
               </Alert>
             )}
 
@@ -215,8 +310,11 @@ export default function CameraPage() {
               {!isStreaming && !cameraError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
                   <div className="text-center text-white">
-                    <Camera className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>Camera preview will appear here</p>
+                    <Loader2 className="h-12 w-12 mx-auto mb-2 opacity-50 animate-spin" />
+                    <p>Initializing camera...</p>
+                    <p className="text-sm opacity-75 mt-1">
+                      Please allow camera access when prompted
+                    </p>
                   </div>
                 </div>
               )}
@@ -296,24 +394,27 @@ export default function CameraPage() {
               />
 
               {/* Detection Overlays */}
-              {detectedFoods.map((food, index) => (
-                <div
-                  key={index}
-                  className="absolute border border-green-400/50 bg-green-400/10 rounded-lg pointer-events-none backdrop-blur-[2px]"
-                  style={{
-                    left: `${food.boundingBox.x}%`,
-                    top: `${food.boundingBox.y}%`,
-                    width: `${food.boundingBox.width}%`,
-                    height: `${food.boundingBox.height}%`,
-                    transform: "translateZ(0)", // Force GPU acceleration
-                    boxShadow: "0 0 0 1px rgba(74, 222, 128, 0.1)", // Subtle glow effect
-                  }}
-                >
-                  <div className="absolute -top-6 left-0 bg-green-400/90 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm whitespace-nowrap shadow-sm">
-                    {food.name} ({Math.round(food.confidence * 100)}%)
-                  </div>
-                </div>
-              ))}
+              {detectedFoods.map(
+                (food, index) =>
+                  food.boundingBox && (
+                    <div
+                      key={index}
+                      className="absolute border border-green-400/50 bg-green-400/10 rounded-lg pointer-events-none backdrop-blur-[2px]"
+                      style={{
+                        left: `${food.boundingBox.x}%`,
+                        top: `${food.boundingBox.y}%`,
+                        width: `${food.boundingBox.width}%`,
+                        height: `${food.boundingBox.height}%`,
+                        transform: "translateZ(0)", // Force GPU acceleration
+                        boxShadow: "0 0 0 1px rgba(74, 222, 128, 0.1)", // Subtle glow effect
+                      }}
+                    >
+                      <div className="absolute -top-6 left-0 bg-green-400/90 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm whitespace-nowrap shadow-sm">
+                        {food.name} ({Math.round(food.confidence * 100)}%)
+                      </div>
+                    </div>
+                  )
+              )}
             </div>
 
             {/* Analysis Status */}
@@ -332,6 +433,14 @@ export default function CameraPage() {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{mlError}</AlertDescription>
               </Alert>
+            )}
+
+            {/* Processing Time */}
+            {processingTime > 0 && (
+              <div className="flex items-center text-sm text-gray-500">
+                <Timer className="h-4 w-4 mr-1" />
+                Processed in {processingTime}ms
+              </div>
             )}
 
             {/* Detected Foods */}
@@ -430,8 +539,8 @@ function DetectedFoodCard({
         <div>
           <h4 className="font-medium text-lg">{food.name}</h4>
           <p className="text-sm text-gray-600">
-            Estimated: {food.estimatedPortion.quantity}{" "}
-            {food.estimatedPortion.unit}
+            Estimated: {food.estimatedPortion?.quantity || 1}{" "}
+            {food.estimatedPortion?.unit || "piece"}
           </p>
         </div>
         <Badge
@@ -443,32 +552,34 @@ function DetectedFoodCard({
       </div>
 
       {/* Nutrition Info */}
-      <div className="grid grid-cols-4 gap-2 text-sm">
-        <div className="text-center">
-          <div className="font-medium text-green-600">
-            {food.nutrition.calories}
+      {food.nutrition && (
+        <div className="grid grid-cols-4 gap-2 text-sm">
+          <div className="text-center">
+            <div className="font-medium text-green-600">
+              {food.nutrition.calories}
+            </div>
+            <div className="text-gray-500">calories</div>
           </div>
-          <div className="text-gray-500">calories</div>
-        </div>
-        <div className="text-center">
-          <div className="font-medium text-blue-600">
-            {food.nutrition.protein}g
+          <div className="text-center">
+            <div className="font-medium text-blue-600">
+              {food.nutrition.protein}g
+            </div>
+            <div className="text-gray-500">protein</div>
           </div>
-          <div className="text-gray-500">protein</div>
-        </div>
-        <div className="text-center">
-          <div className="font-medium text-orange-600">
-            {food.nutrition.carbohydrates}g
+          <div className="text-center">
+            <div className="font-medium text-orange-600">
+              {food.nutrition.carbohydrates}g
+            </div>
+            <div className="text-gray-500">carbs</div>
           </div>
-          <div className="text-gray-500">carbs</div>
-        </div>
-        <div className="text-center">
-          <div className="font-medium text-purple-600">
-            {food.nutrition.fat}g
+          <div className="text-center">
+            <div className="font-medium text-purple-600">
+              {food.nutrition.fat}g
+            </div>
+            <div className="text-gray-500">fat</div>
           </div>
-          <div className="text-gray-500">fat</div>
         </div>
-      </div>
+      )}
 
       {/* Add to Meal */}
       <div className="flex gap-2 items-center">

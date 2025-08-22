@@ -2,28 +2,18 @@
 import { useState, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useUIStore } from "@/store";
-
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  tier: string;
-  icon: string;
-  unlocked: boolean;
-  unlockedAt?: Date;
-  progress: number;
-  condition: any;
-}
+import type { AchievementWithProgress } from "@/types/dashboard";
 
 export function useAchievements() {
   const { user } = useUser();
   const { showSuccess } = useUIStore();
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [achievements, setAchievements] = useState<AchievementWithProgress[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
 
   // Mock achievements data
-  const mockAchievements: Achievement[] = [
+  const mockAchievements: AchievementWithProgress[] = [
     {
       id: "1",
       name: "First Steps",
@@ -34,7 +24,11 @@ export function useAchievements() {
       unlocked: true,
       unlockedAt: new Date("2024-01-01"),
       progress: 100,
-      condition: { meals_logged: 1 },
+      condition: {
+        type: "meals_logged",
+        target: 1,
+        current: 1,
+      },
     },
     {
       id: "2",
@@ -46,7 +40,11 @@ export function useAchievements() {
       unlocked: true,
       unlockedAt: new Date("2024-01-03"),
       progress: 100,
-      condition: { barcodes_scanned: 10 },
+      condition: {
+        type: "barcodes_scanned",
+        target: 10,
+        current: 10,
+      },
     },
     {
       id: "3",
@@ -58,7 +56,11 @@ export function useAchievements() {
       unlocked: true,
       unlockedAt: new Date("2024-01-08"),
       progress: 100,
-      condition: { streak: 7 },
+      condition: {
+        type: "streak",
+        target: 7,
+        current: 7,
+      },
     },
     {
       id: "4",
@@ -69,7 +71,11 @@ export function useAchievements() {
       icon: "🥗",
       unlocked: false,
       progress: 60,
-      condition: { macro_goals_met: 5 },
+      condition: {
+        type: "macro_goals_met",
+        target: 5,
+        current: 3,
+      },
     },
     {
       id: "5",
@@ -80,7 +86,11 @@ export function useAchievements() {
       icon: "🤖",
       unlocked: false,
       progress: 25,
-      condition: { ai_scans: 20 },
+      condition: {
+        type: "ai_scans",
+        target: 20,
+        current: 5,
+      },
     },
     {
       id: "6",
@@ -91,7 +101,11 @@ export function useAchievements() {
       icon: "🏆",
       unlocked: false,
       progress: 40,
-      condition: { streak: 30 },
+      condition: {
+        type: "streak",
+        target: 30,
+        current: 12,
+      },
     },
   ];
 

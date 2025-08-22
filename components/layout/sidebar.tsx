@@ -23,6 +23,7 @@ const navigation = [
   { name: "Scan Food", href: "/scan", icon: Scan },
   { name: "Camera", href: "/camera", icon: Camera },
   { name: "Add Food", href: "/add-food", icon: Utensils },
+  { name: "Food History", href: "/food-history", icon: Utensils },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Goals", href: "/goals", icon: Target },
   { name: "Achievements", href: "/achievements", icon: Trophy },

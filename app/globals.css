@@ -122,33 +122,19 @@
   }
 }
 
-/* Quagga Scanner Styles */
-@layer components {
-  #interactive.viewport {
-    width: 100% !important;
-    height: 100% !important;
-    position: relative !important;
+/* Removed Quagga Scanner Styles */
+
+@keyframes skeleton {
+  0% {
+    background-position: -200px 0;
   }
 
-  #interactive.viewport video,
-  #interactive.viewport .drawingBuffer {
-    width: 100% !important;
-    height: 100% !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    object-fit: cover !important;
+  100% {
+    background-position: calc(200px + 100%) 0;
   }
+}
 
-  #interactive.viewport canvas {
-    width: 100% !important;
-    height: 100% !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-  }
-
-  #interactive.viewport canvas.drawingBuffer {
-    display: none !important;
-  }
+.animate-skeleton {
+  background-size: 200% 100%;
+  animation: skeleton 1.5s infinite linear;
 }

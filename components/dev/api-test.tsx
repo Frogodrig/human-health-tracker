@@ -7,9 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { productAPI, APIError, NetworkError } from "@/lib/api/api";
-import type { ProductData } from "@/types";
 import { CheckCircle, XCircle, Loader2, Search } from "lucide-react";
+import type { ProductData } from "@/types";
 
 export function APITestComponent() {
   const [testBarcode, setTestBarcode] = useState("3017620422003"); // Nutella barcode for testing
@@ -31,13 +30,23 @@ export function APITestComponent() {
     const startTime = Date.now();
 
     try {
-      const product = await productAPI.searchByBarcode(testBarcode);
+      const res = await fetch(`/api/products/${testBarcode}`);
       const timing = Date.now() - startTime;
-
+      if (!res.ok) {
+        const errorData = await res.json();
+        setResults({
+          type: "barcode",
+          success: false,
+          error: errorData.error || "Unknown error",
+          timing,
+        });
+        return;
+      }
+      const data = await res.json();
       setResults({
         type: "barcode",
         success: true,
-        data: product || undefined,
+        data: data.data || undefined,
         timing,
       });
     } catch (error) {
@@ -61,13 +70,25 @@ export function APITestComponent() {
     const startTime = Date.now();
 
     try {
-      const products = await productAPI.searchByName(searchQuery);
+      const res = await fetch(
+        `/api/products?q=${encodeURIComponent(searchQuery)}`
+      );
       const timing = Date.now() - startTime;
-
+      if (!res.ok) {
+        const errorData = await res.json();
+        setResults({
+          type: "search",
+          success: false,
+          error: errorData.error || "Unknown error",
+          timing,
+        });
+        return;
+      }
+      const data = await res.json();
       setResults({
         type: "search",
         success: true,
-        data: products,
+        data: data.products || [],
         timing,
       });
     } catch (error) {
@@ -128,7 +149,7 @@ export function APITestComponent() {
       <CardHeader>
         <CardTitle>API Testing Tool</CardTitle>
         <p className="text-sm text-gray-600">
-          Test the OpenFoodFacts API integration
+          Test the FatSecret API integration
         </p>
       </CardHeader>
 

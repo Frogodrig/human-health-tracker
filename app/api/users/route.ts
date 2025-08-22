@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@/lib/generated/prisma";
-import type { APIErrorResponse, APISuccessResponse } from "@/types";
+import type {
+  APIErrorResponse,
+  APISuccessResponse,
+  UserProfile,
+} from "@/types";
 
 const prisma = new PrismaClient();
 
@@ -34,8 +38,29 @@ export async function GET(request: NextRequest) {
     }
 
     // For now, users can only access their own data
-    const successResponse: APISuccessResponse = {
-      data: [currentUser],
+    const successResponse: APISuccessResponse<UserProfile[]> = {
+      data: [
+        {
+          ...currentUser,
+          name: currentUser.name || "User",
+          avatar: currentUser.avatar || undefined,
+          dateOfBirth: currentUser.dateOfBirth || undefined,
+          gender: currentUser.gender || undefined,
+          height: currentUser.height || undefined,
+          weight: currentUser.weight || undefined,
+          dietaryGoals: currentUser.dietaryGoals as
+            | "WEIGHT_LOSS"
+            | "MUSCLE_GAIN"
+            | "MAINTENANCE",
+          goals: {
+            dailyCalories: 2000,
+            dailyProtein: 150,
+            dailyCarbs: 250,
+            dailyFat: 67,
+            waterIntake: 2000,
+          },
+        },
+      ],
       message: "User data retrieved successfully",
     };
 
@@ -95,7 +120,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: user.id },
     });
 
-    const successResponse: APISuccessResponse = {
+    const successResponse: APISuccessResponse<{ message: string }> = {
       data: { message: "User deleted successfully" },
       message: "Account deleted",
     };

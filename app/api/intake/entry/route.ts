@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@/lib/generated/prisma";
 import type { APIErrorResponse, APISuccessResponse } from "@/types";
+import { FoodEntryWithDetails } from "@/types/dashboard";
 
 const prisma = new PrismaClient();
 
@@ -14,17 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
     const {
-      name,
-      brand,
-      servingSize,
-      servingUnit,
       quantity,
+      servingUnit,
       mealType,
       nutrition,
-      productId,
-    } = body;
+      detectedBy,
+      confidence,
+    } = await request.json();
 
     // Get user from database
     const user = await prisma.user.findUnique({
@@ -68,7 +66,7 @@ export async function POST(request: NextRequest) {
     const intakeEntry = await prisma.intakeEntry.create({
       data: {
         dailyIntakeId: dailyIntake.id,
-        foodProductId: productId || null,
+        foodProductId: detectedBy ? "BARCODE" : "MANUAL",
         quantity,
         unit: servingUnit,
         mealType,
@@ -76,7 +74,8 @@ export async function POST(request: NextRequest) {
         protein: nutrition.protein,
         carbohydrates: nutrition.carbohydrates,
         fat: nutrition.fat,
-        detectedBy: productId ? "BARCODE" : "MANUAL",
+        detectedBy: detectedBy ? "BARCODE" : "MANUAL",
+        confidence,
       },
     });
 
@@ -93,8 +92,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const successResponse: APISuccessResponse = {
-      data: intakeEntry,
+    const successResponse: APISuccessResponse<FoodEntryWithDetails> = {
+      data: {
+        ...intakeEntry,
+        confidence: intakeEntry.confidence || undefined,
+      },
       message: "Food entry added successfully",
     };
 

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@/lib/generated/prisma";
-import type { APIErrorResponse, APISuccessResponse } from "@/types";
+import type { APISuccessResponse, UserGoals } from "@/types";
 
 const prisma = new PrismaClient();
 
@@ -29,8 +29,14 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const successResponse: APISuccessResponse = {
-      data: user.goals,
+    const successResponse: APISuccessResponse<UserGoals> = {
+      data: {
+        dailyCalories: user.goals[0]?.targetCalories || 2000,
+        dailyProtein: user.goals[0]?.targetProtein || 150,
+        dailyCarbs: user.goals[0]?.targetCarbohydrates || 250,
+        dailyFat: user.goals[0]?.targetFat || 67,
+        waterIntake: 2000, // Default water goal since it's not in the database
+      },
       message: "Goals retrieved successfully",
     };
 
@@ -91,8 +97,14 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const successResponse: APISuccessResponse = {
-      data: updatedGoal,
+    const successResponse: APISuccessResponse<UserGoals> = {
+      data: {
+        dailyCalories: updatedGoal.targetCalories || 2000,
+        dailyProtein: updatedGoal.targetProtein || 150,
+        dailyCarbs: updatedGoal.targetCarbohydrates || 250,
+        dailyFat: updatedGoal.targetFat || 67,
+        waterIntake: 2000, // Default water goal since it's not in the database
+      },
       message: "Goals updated successfully",
     };
 

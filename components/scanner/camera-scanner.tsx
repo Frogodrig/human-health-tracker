@@ -1,9 +1,18 @@
+import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useCamera } from "@/hooks/use-camera";
 import { useFoodRecognition } from "@/hooks/use-food-recognition";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Camera, RotateCcw, AlertCircle, Zap, Grid } from "lucide-react";
+import {
+  Camera,
+  RotateCcw,
+  AlertCircle,
+  Zap,
+  Grid,
+  Barcode,
+  Loader2,
+} from "lucide-react";
 import { DetectedFood } from "@/types/ml";
 
 interface CameraScannerProps {
@@ -11,6 +20,8 @@ interface CameraScannerProps {
   onError?: (error: string) => void;
   onFoodDetected?: (food: DetectedFood) => void;
   className?: string;
+  mode?: "food" | "barcode";
+  onModeChange?: (mode: "food" | "barcode") => void;
 }
 
 export function CameraScanner({
@@ -18,13 +29,20 @@ export function CameraScanner({
   onError,
   onFoodDetected,
   className = "",
+  mode: initialMode = "food",
+  onModeChange,
 }: CameraScannerProps) {
   const [showGrid, setShowGrid] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [flashActive, setFlashActive] = useState(false);
   const [detectedFoods, setDetectedFoods] = useState<DetectedFood[]>([]);
   const [isLiveDetection, setIsLiveDetection] = useState(false);
+  const [mode, setMode] = useState<"food" | "barcode">(initialMode || "food");
   const detectionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [modalFood, setModalFood] = useState<DetectedFood | null>(null);
+  const [diaryLoading, setDiaryLoading] = useState(false);
+  const [diarySuccess, setDiarySuccess] = useState("");
+  const [diaryError, setDiaryError] = useState("");
 
   const {
     videoRef,
@@ -41,7 +59,11 @@ export function CameraScanner({
     height: 720,
   });
 
-  const { detectFoods, modelLoaded, confidence } = useFoodRecognition();
+  const {
+    detectFoods,
+    isLoading: foodLoading,
+    confidence,
+  } = useFoodRecognition();
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -63,10 +85,9 @@ export function CameraScanner({
     }
   }, [error, onError]);
 
-  // Handle live detection
+  // Handle live detection (only in food mode)
   useEffect(() => {
-    if (isLiveDetection && isActive && modelLoaded) {
-      // Run detection every 500ms
+    if (mode === "food" && isLiveDetection && isActive) {
       detectionIntervalRef.current = setInterval(async () => {
         const imageData = getFrame();
         if (imageData) {
@@ -74,7 +95,7 @@ export function CameraScanner({
             const results = await detectFoods(imageData);
             setDetectedFoods(results);
             if (results.length > 0 && onFoodDetected) {
-              onFoodDetected(results[0]); // Notify parent of the highest confidence detection
+              onFoodDetected(results[0]);
             }
           } catch (err) {
             console.error("Live detection error:", err);
@@ -84,40 +105,28 @@ export function CameraScanner({
     } else if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
     }
-
     return () => {
       if (detectionIntervalRef.current) {
         clearInterval(detectionIntervalRef.current);
       }
     };
-  }, [
-    isLiveDetection,
-    isActive,
-    modelLoaded,
-    detectFoods,
-    getFrame,
-    onFoodDetected,
-  ]);
+  }, [mode, isLiveDetection, isActive, detectFoods, getFrame, onFoodDetected]);
 
   const handleCapture = async () => {
     if (!isActive || isProcessing) return;
-
     setIsProcessing(true);
     setFlashActive(true);
-
     try {
       const imageData = getFrame();
       if (imageData) {
-        // Trigger flash effect
         setTimeout(() => setFlashActive(false), 200);
-
-        // Process image with food recognition
-        const results = await detectFoods(imageData);
-        setDetectedFoods(results);
-        if (results.length > 0 && onFoodDetected) {
-          onFoodDetected(results[0]); // Notify parent of the highest confidence detection
+        if (mode === "food") {
+          const results = await detectFoods(imageData);
+          setDetectedFoods(results);
+          if (results.length > 0 && onFoodDetected) {
+            onFoodDetected(results[0]);
+          }
         }
-
         if (onCapture) {
           onCapture(imageData);
         }
@@ -148,6 +157,14 @@ export function CameraScanner({
     }
   };
 
+  const handleModeToggle = () => {
+    const newMode = mode === "food" ? "barcode" : "food";
+    setMode(newMode);
+    if (onModeChange) onModeChange(newMode);
+    setDetectedFoods([]);
+    setIsLiveDetection(false);
+  };
+
   return (
     <Card className={`relative overflow-hidden ${className}`}>
       <div ref={containerRef} className="relative aspect-video w-full bg-black">
@@ -173,12 +190,10 @@ export function CameraScanner({
               playsInline
               muted
             />
-
             {/* Flash effect */}
             {flashActive && (
               <div className="absolute inset-0 bg-white opacity-50 transition-opacity duration-200" />
             )}
-
             {/* Grid overlay */}
             {showGrid && (
               <div className="absolute inset-0 pointer-events-none">
@@ -189,32 +204,84 @@ export function CameraScanner({
                 </div>
               </div>
             )}
-
-            {/* Detection results overlay */}
-            {detectedFoods.map((food, index) => (
-              <div
-                key={index}
-                className="absolute border-2 border-green-500 bg-green-500/20 transition-all duration-300"
-                style={{
-                  left: `${food.boundingBox.x}%`,
-                  top: `${food.boundingBox.y}%`,
-                  width: `${food.boundingBox.width}%`,
-                  height: `${food.boundingBox.height}%`,
-                }}
-              >
-                <div className="absolute -top-6 left-0 bg-green-500 text-white px-2 py-1 text-sm rounded-t">
-                  {food.name} ({Math.round(food.confidence * 100)}%)
-                </div>
-              </div>
-            ))}
-
-            {/* Confidence indicator */}
-            {isLiveDetection && (
+            {/* Detection results overlay (only in food mode) */}
+            {mode === "food" &&
+              detectedFoods.map((food, index) =>
+                food.boundingBox ? (
+                  <div
+                    key={index}
+                    className="absolute border-2 border-green-500 bg-green-500/20 transition-all duration-300"
+                    style={{
+                      left: `${food.boundingBox.x}%`,
+                      top: `${food.boundingBox.y}%`,
+                      width: `${food.boundingBox.width}%`,
+                      height: `${food.boundingBox.height}%`,
+                      zIndex: 40,
+                    }}
+                    aria-label={`Detected food: ${food.name}`}
+                    tabIndex={0}
+                  >
+                    <div className="absolute -top-6 left-0 bg-green-500 text-white px-2 py-1 text-sm rounded-t shadow">
+                      {food.name} ({Math.round(food.confidence * 100)}%)
+                    </div>
+                    {food.nutrition && (
+                      <div className="absolute left-0 top-full mt-2 w-56 max-w-xs bg-white text-gray-900 rounded shadow-lg p-3 text-xs animate-fade-in z-50">
+                        <div className="font-semibold mb-1">
+                          Nutrition (per 100g)
+                        </div>
+                        <ul className="space-y-1">
+                          <li>
+                            Calories:{" "}
+                            <span className="font-bold">
+                              {food.nutrition.calories}
+                            </span>{" "}
+                            kcal
+                          </li>
+                          <li>
+                            Protein:{" "}
+                            <span className="font-bold">
+                              {food.nutrition.protein}
+                            </span>{" "}
+                            g
+                          </li>
+                          <li>
+                            Carbs:{" "}
+                            <span className="font-bold">
+                              {food.nutrition.carbohydrates}
+                            </span>{" "}
+                            g
+                          </li>
+                          <li>
+                            Fat:{" "}
+                            <span className="font-bold">
+                              {food.nutrition.fat}
+                            </span>{" "}
+                            g
+                          </li>
+                        </ul>
+                        <button
+                          className="mt-2 w-full bg-green-600 text-white rounded py-1 text-xs font-medium hover:bg-green-700 transition"
+                          aria-label="Add to Diary"
+                          onClick={() => setModalFood(food)}
+                        >
+                          Add to Diary
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : null
+              )}
+            {/* Confidence indicator (only in food mode) */}
+            {mode === "food" && isLiveDetection && (
               <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                 Confidence: {Math.round(confidence * 100)}%
               </div>
             )}
-
+            {mode === "food" && detectedFoods.length > 0 && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-green-600 text-white px-4 py-2 rounded shadow animate-fade-in">
+                Food detected!
+              </div>
+            )}
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-4 bg-black/50 p-4">
               <Button
                 variant="secondary"
@@ -237,7 +304,9 @@ export function CameraScanner({
                 variant="default"
                 size="icon"
                 onClick={handleCapture}
-                disabled={!isActive || isProcessing || !modelLoaded}
+                disabled={
+                  !isActive || isProcessing || (mode === "food" && foodLoading)
+                }
                 title="Capture"
               >
                 <Camera className="h-4 w-4" />
@@ -250,16 +319,159 @@ export function CameraScanner({
               >
                 <Zap className="h-4 w-4" />
               </Button>
+              {mode === "food" && (
+                <Button
+                  variant={isLiveDetection ? "default" : "secondary"}
+                  size="icon"
+                  onClick={() => setIsLiveDetection(!isLiveDetection)}
+                  disabled={foodLoading}
+                  title="Toggle Live Detection"
+                >
+                  <Camera className="h-4 w-4" />
+                </Button>
+              )}
               <Button
-                variant={isLiveDetection ? "default" : "secondary"}
+                variant={mode === "food" ? "default" : "secondary"}
                 size="icon"
-                onClick={() => setIsLiveDetection(!isLiveDetection)}
-                disabled={!modelLoaded}
-                title="Toggle Live Detection"
+                onClick={handleModeToggle}
+                title={
+                  mode === "food"
+                    ? "Switch to Barcode Mode"
+                    : "Switch to Food Mode"
+                }
               >
-                <Camera className="h-4 w-4" />
+                <Barcode className="h-4 w-4" />
               </Button>
             </div>
+            {foodLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                <Loader2
+                  className="h-10 w-10 animate-spin text-white"
+                  aria-label="Loading"
+                />
+              </div>
+            )}
+            {error && (
+              <div className="absolute top-0 left-0 right-0 z-30 bg-red-600 text-white text-center py-2">
+                {error}
+              </div>
+            )}
+            {/* Add to Diary Modal */}
+            {modalFood && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-80 max-w-full animate-fade-in">
+                  <h2 className="font-bold text-lg mb-2">Add to Diary</h2>
+                  <div className="mb-2">{modalFood.name}</div>
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      setDiaryLoading(true);
+                      setDiaryError("");
+                      setDiarySuccess("");
+                      const form = e.target as HTMLFormElement;
+                      const servingSize = Number(
+                        (form["servingSize"] as HTMLInputElement).value
+                      );
+                      const mealType = (form["mealType"] as HTMLSelectElement)
+                        .value;
+                      try {
+                        const res = await fetch("/api/intake/entry", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name: modalFood.name,
+                            servingSize,
+                            servingUnit: "g",
+                            quantity: 1,
+                            mealType,
+                            nutrition: {
+                              ...modalFood.nutrition,
+                              calories: Math.round(
+                                (modalFood.nutrition?.calories || 0) *
+                                  (servingSize / 100)
+                              ),
+                              protein:
+                                Math.round(
+                                  (modalFood.nutrition?.protein || 0) *
+                                    (servingSize / 100) *
+                                    10
+                                ) / 10,
+                              carbohydrates:
+                                Math.round(
+                                  (modalFood.nutrition?.carbohydrates || 0) *
+                                    (servingSize / 100) *
+                                    10
+                                ) / 10,
+                              fat:
+                                Math.round(
+                                  (modalFood.nutrition?.fat || 0) *
+                                    (servingSize / 100) *
+                                    10
+                                ) / 10,
+                            },
+                          }),
+                        });
+                        if (!res.ok) throw new Error("Failed to add entry");
+                        setDiarySuccess("Added to diary!");
+                        setTimeout(() => setModalFood(null), 1200);
+                      } catch {
+                        setDiaryError("Failed to add entry");
+                      } finally {
+                        setDiaryLoading(false);
+                      }
+                    }}
+                  >
+                    <label className="block text-xs mb-1">
+                      Serving size (g):
+                    </label>
+                    <input
+                      name="servingSize"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      defaultValue={100}
+                      className="w-full border rounded px-2 py-1 mb-2 text-xs"
+                      required
+                    />
+                    <label className="block text-xs mb-1">Meal type:</label>
+                    <select
+                      name="mealType"
+                      className="w-full border rounded px-2 py-1 mb-2 text-xs"
+                      defaultValue="LUNCH"
+                    >
+                      <option value="BREAKFAST">Breakfast</option>
+                      <option value="LUNCH">Lunch</option>
+                      <option value="DINNER">Dinner</option>
+                      <option value="SNACK">Snack</option>
+                    </select>
+                    <button
+                      type="submit"
+                      className="w-full bg-green-600 text-white rounded py-1 text-xs font-medium hover:bg-green-700 transition"
+                      disabled={diaryLoading}
+                    >
+                      {diaryLoading ? "Adding..." : "Add"}
+                    </button>
+                    {diarySuccess && (
+                      <div className="text-green-600 text-xs mt-2">
+                        {diarySuccess}
+                      </div>
+                    )}
+                    {diaryError && (
+                      <div className="text-red-600 text-xs mt-2">
+                        {diaryError}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="w-full mt-2 text-xs underline text-gray-500"
+                      onClick={() => setModalFood(null)}
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
