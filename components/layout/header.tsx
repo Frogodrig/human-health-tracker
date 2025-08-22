@@ -4,15 +4,22 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useUIStore } from "@/store";
-import { Menu, Bell, Sun, Moon } from "lucide-react";
+import { Menu, Bell, Sun, Moon, Monitor } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export function Header() {
   const { toggleSidebar, unreadNotificationCount } = useUIStore();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // useEffect only runs on the client, so now we can safely show the UI
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
-    <header className="bg-white border-b h-16 flex items-center justify-between px-4 md:px-6">
+    <header className="bg-card border-b h-16 flex items-center justify-between px-4 md:px-6">
       {/* Mobile menu button */}
       <Button
         variant="ghost"
@@ -25,7 +32,7 @@ export function Header() {
 
       {/* Page title - will be dynamic based on route */}
       <div className="hidden md:block">
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
+        <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
       </div>
 
       {/* Right side actions */}
@@ -36,7 +43,9 @@ export function Header() {
           size="sm"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         >
-          {theme === "dark" ? (
+          {!mounted ? (
+            <Monitor className="h-4 w-4" />
+          ) : theme === "dark" ? (
             <Sun className="h-4 w-4" />
           ) : (
             <Moon className="h-4 w-4" />
