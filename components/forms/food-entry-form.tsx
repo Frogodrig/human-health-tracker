@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { calculateNutriGrade } from "@/lib/utils/utils";
 import type { ManualEntryForm } from "@/types";
+import { useApiToast } from "@/hooks/use-toast";
 import { Calculator, Info, Plus } from "lucide-react";
 
 // Form schema
@@ -65,6 +66,7 @@ export function FoodEntryForm({
   submitLabel = "Add Food",
 }: FoodEntryFormProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const { foodAdded } = useApiToast();
 
   const form = useForm<FoodEntryFormData>({
     resolver: zodResolver(foodEntrySchema),
@@ -138,7 +140,15 @@ export function FoodEntryForm({
       mealType: data.mealType,
     };
 
-    await onSubmit(formattedData);
+    try {
+      await onSubmit(formattedData);
+      const totalCalories = Math.round(data.calories * data.quantity * (data.servingSize / 100));
+      foodAdded(data.name, totalCalories);
+      form.reset(); // Reset form after successful submission
+    } catch (error) {
+      // Error handling is typically done in the parent component
+      console.error("Form submission error:", error);
+    }
   };
 
   return (

@@ -1,7 +1,7 @@
-// Updated Custom hook for barcode scanning
+// Updated Custom hook for barcode scanning (compatible with react-zxing)
 import { useState, useCallback } from "react";
 import { useScannerStore } from "@/store";
-import { productAPI, APIError, NetworkError } from "@/lib/api/api";
+import { APIError, NetworkError } from "@/lib/api/api";
 import type { ProductData } from "@/types";
 
 interface UseBarcodeScanner {
@@ -38,18 +38,21 @@ export function useBarcodeScanner(): UseBarcodeScanner {
 
       try {
         setLastScannedCode(barcode);
-        const productData = await productAPI.searchByBarcode(barcode);
-
-        if (productData) {
-          setProduct(productData);
-          setError(null);
-          setErrorType(null);
-        } else {
+        const res = await fetch(`/api/products/${barcode}`);
+        if (!res.ok) {
+          const errorData = await res.json();
           setError(
-            "Product not found in our database. You can add it manually."
+            errorData.error ||
+              "Product not found in our database. You can add it manually."
           );
           setErrorType("api");
+          setProduct(null);
+          return;
         }
+        const data = await res.json();
+        setProduct(data.data);
+        setError(null);
+        setErrorType(null);
       } catch (err) {
         console.error("Barcode scan error:", err);
 

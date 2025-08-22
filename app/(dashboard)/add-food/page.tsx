@@ -19,7 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useUIStore } from "@/store";
-import { productAPI } from "@/lib/api/api";
+import { searchProductsByName } from "@/lib/services/productService";
 import { calculateNutriGrade } from "@/lib/utils/utils";
 import type { ProductData, ManualEntryForm } from "@/types";
 import {
@@ -30,6 +30,7 @@ import {
   AlertCircle,
   Check,
 } from "lucide-react";
+import { ManualProductForm } from "@/components/forms/manual-product-form";
 
 interface SearchResult {
   id: string;
@@ -85,13 +86,16 @@ export default function AddFoodPage() {
     mealType: "BREAKFAST",
   });
 
+  // Add a state to show manual entry form
+  const [showManualForm, setShowManualForm] = useState(false);
+
   // Search for products
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
     setSearchLoading(true);
     try {
-      const results = await productAPI.searchByName(searchQuery);
+      const results = await searchProductsByName(searchQuery);
       setSearchResults(results);
       setSelectedProduct(null);
     } catch (error) {
@@ -114,10 +118,10 @@ export default function AddFoodPage() {
       brand: product.brand || "",
       servingSize: product.serving.size,
       servingUnit: product.serving.unit,
-      calories: product.calories,
-      protein: product.protein,
-      carbohydrates: product.carbohydrates,
-      fat: product.fat,
+      calories: product.calories || 0,
+      protein: product.protein || 0,
+      carbohydrates: product.carbohydrates || 0,
+      fat: product.fat || 0,
     });
   };
 
@@ -545,6 +549,24 @@ export default function AddFoodPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* In the return JSX, add a button to show manual form if search fails or user wants to add manually */}
+      {!showManualForm ? (
+        <Button variant="outline" onClick={() => setShowManualForm(true)}>
+          Can&apos;t find your product? Add manually
+        </Button>
+      ) : (
+        <ManualProductForm
+          onSubmit={async (data) => {
+            // TODO: Send data and images to API route for saving
+            // For now, just log and show success
+            console.log("Manual product submitted", data);
+            showSuccess("Product submitted!", "Thank you for contributing.");
+            setShowManualForm(false);
+          }}
+          loading={submitLoading}
+        />
+      )}
     </div>
   );
 }

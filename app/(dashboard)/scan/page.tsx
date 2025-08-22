@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Scan, Keyboard, AlertCircle, Wifi, WifiOff } from "lucide-react";
-import Link from "next/link";
+import { Scan, Keyboard, AlertCircle, Wifi, WifiOff, Info } from "lucide-react";
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
-import Image from "next/image";
+import { NutrientBreakdownPieChart } from "@/components/charts/macro-pie-chart";
+import NutritionLabelTable from "@/components/ui/NutritionLabelTable";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import PokemonCard from "@/components/PokemonCard";
 
 export default function ScanPage() {
   const [showScanner, setShowScanner] = useState(false);
@@ -60,6 +62,13 @@ export default function ScanPage() {
         <p className="text-gray-600">
           Use your camera to scan barcodes or enter them manually
         </p>
+        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong> If you&apos;ve already granted camera
+            permission for food recognition, you may need to click &quot;Retry
+            Camera&quot; to allow camera access for barcode scanning.
+          </p>
+        </div>
       </div>
 
       {/* Scan Options */}
@@ -148,105 +157,171 @@ export default function ScanPage() {
       )}
 
       {/* Product Result */}
-      {product && (
+      {isLoading && !product && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-green-600">Product Found!</CardTitle>
-            <Button variant="ghost" size="sm" onClick={clearResults}>
-              ✕
-            </Button>
+          <CardHeader>
+            <CardTitle className="text-green-600">Loading Product...</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
-              {product.imageUrl && (
-                <Image
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-16 h-16 object-cover rounded-lg"
-                />
-              )}
+            <div className="flex gap-4 items-center">
               <div className="flex-1 space-y-2">
-                <div>
-                  <p className="font-semibold text-lg">{product.name}</p>
-                  {product.brand && (
-                    <p className="text-sm text-gray-600">{product.brand}</p>
-                  )}
+                <div className="h-6 w-2/3 bg-gray-200 rounded animate-pulse" />
+                <div className="h-4 w-1/3 bg-gray-100 rounded animate-pulse" />
+                <div className="grid grid-cols-2 gap-4 mt-2">
+                  <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-4 w-16 bg-gray-100 rounded animate-pulse" />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Calories:</span>{" "}
-                    {product.calories}
-                  </div>
-                  <div>
-                    <span className="font-medium">Protein:</span>{" "}
-                    {product.protein}g
-                  </div>
-                  <div>
-                    <span className="font-medium">Carbs:</span>{" "}
-                    {product.carbohydrates}g
-                  </div>
-                  <div>
-                    <span className="font-medium">Fat:</span> {product.fat}g
-                  </div>
-                </div>
-
-                {product.nutriGrade && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">Nutri-Grade:</span>
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-bold ${
-                        product.nutriGrade === "A"
-                          ? "bg-green-100 text-green-800"
-                          : product.nutriGrade === "B"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : product.nutriGrade === "C"
-                          ? "bg-orange-100 text-orange-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {product.nutriGrade}
-                    </span>
-                  </div>
-                )}
               </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <Button className="flex-1">Add to Today&apos;s Intake</Button>
-              <Button variant="outline" className="flex-1">
-                Save for Later
-              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Need Help?</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 md:grid-cols-3">
-            <Link href="/add-food">
-              <Button variant="outline" className="w-full">
-                Add Food Manually
-              </Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button variant="outline" className="w-full">
-                View Today&apos;s Intake
-              </Button>
-            </Link>
-            <Link href="/camera">
-              <Button variant="outline" className="w-full">
-                Take Food Photo
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      {product && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-green-600">
+              Nutrition Intelligence
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={clearResults}>
+              ✕
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {/* Warning for missing critical fields */}
+            {["calories", "protein", "carbohydrates", "fat"].some(
+              (key) => typeof product[key as keyof typeof product] !== "number"
+            ) && (
+              <Alert variant="default" className="mb-4 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+                <span
+                  className="ml-2 underline text-blue-700 cursor-help relative"
+                  tabIndex={0}
+                  aria-describedby="tooltip-missing-nutrition"
+                  onMouseEnter={() => {
+                    const tooltip = document.getElementById(
+                      "tooltip-missing-nutrition"
+                    );
+                    if (tooltip) tooltip.style.display = "block";
+                  }}
+                  onMouseLeave={() => {
+                    const tooltip = document.getElementById(
+                      "tooltip-missing-nutrition"
+                    );
+                    if (tooltip) tooltip.style.display = "none";
+                  }}
+                >
+                  Why?
+                  <span
+                    id="tooltip-missing-nutrition"
+                    role="tooltip"
+                    style={{ display: "none" }}
+                    className="absolute z-10 left-1/2 -translate-x-1/2 top-full mt-2 px-2 py-1 rounded bg-black text-white text-xs whitespace-pre-line max-w-xs break-words shadow-lg"
+                  >
+                    This product is missing key nutrition info (calories,
+                    protein, carbs, or fat). You can help improve it on Open
+                    Food Facts!
+                  </span>
+                </span>
+                <a
+                  href={`https://world.openfoodfacts.org/product/${
+                    product.barcode || ""
+                  }`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 text-blue-700 underline"
+                >
+                  Help complete this product
+                </a>
+              </Alert>
+            )}
+            <Tabs defaultValue="summary" className="w-full">
+              <TabsList>
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="nutrition">Nutrition Label</TabsTrigger>
+              </TabsList>
+              <div className="mt-4" />
+              <TabsContent value="summary">
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
+                  {/* Product Card */}
+                  <div className="w-full md:w-1/3 flex justify-center">
+                    <PokemonCard product={product} />
+                  </div>
+                  {/* Nutrient Grid & Chart */}
+                  <div className="flex-1 flex flex-col gap-4 w-full md:w-2/3">
+                    {/* Pie chart and Nutri-Grade: ensure vertical centering and no cutoff */}
+                    <div className="flex flex-col md:flex-row gap-6 items-center justify-center mt-2 min-h-[300px]">
+                      <div className="flex-1 min-w-[220px] flex items-center justify-center h-full">
+                        <NutrientBreakdownPieChart
+                          nutrients={[
+                            {
+                              name: "Protein",
+                              value:
+                                typeof product.protein === "number"
+                                  ? product.protein
+                                  : 0,
+                              color: "#3b82f6",
+                            },
+                            {
+                              name: "Carbohydrates",
+                              value:
+                                typeof product.carbohydrates === "number"
+                                  ? product.carbohydrates
+                                  : 0,
+                              color: "#f59e0b",
+                            },
+                            {
+                              name: "Fat",
+                              value:
+                                typeof product.fat === "number"
+                                  ? product.fat
+                                  : 0,
+                              color: "#8b5cf6",
+                            },
+                            {
+                              name: "Sugars",
+                              value:
+                                typeof product.sugars === "number"
+                                  ? product.sugars
+                                  : 0,
+                              color: "#f43f5e",
+                            },
+                            {
+                              name: "Sodium",
+                              value:
+                                typeof product.sodium === "number"
+                                  ? product.sodium
+                                  : 0,
+                              color: "#06b6d4",
+                            },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="nutrition">
+                <div className="mt-4">
+                  <div className="font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-gray-400" /> Full Nutrition
+                    Label
+                  </div>
+                  <NutritionLabelTable
+                    nutrients={
+                      product as unknown as Record<string, number | undefined>
+                    }
+                    servingSize={`${product.serving.size} ${product.serving.unit}`}
+                    netWeight={product.netWeight}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -32,28 +32,75 @@ model User {
 }
 
 model FoodProduct {
-  id            String        @id @default(cuid())
-  barcode       String?       @unique
-  name          String
-  brand         String?
-  servingSize   Float
-  servingUnit   String        @default("g")
-  calories      Float
-  protein       Float
-  carbohydrates Float
-  sugars        Float?
-  fat           Float
-  saturatedFat  Float?
-  fiber         Float?
-  sodium        Float?
-  nutriGrade    NutriGrade?
-  imageUrl      String?
-  verified      Boolean       @default(false)
-  source        DataSource    @default(OPENFOODFACTS)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  customFoods   CustomFood[]
-  intakeEntries IntakeEntry[]
+  id                  String        @id @default(cuid())
+  barcode             String?       @unique
+  name                String
+  brand               String?
+  servingSize         Float
+  servingUnit         String        @default("g")
+  calories            Float
+  protein             Float
+  carbohydrates       Float
+  sugars              Float?
+  fat                 Float
+  saturatedFat        Float?
+  fiber               Float?
+  sodium              Float?
+  nutriGrade          NutriGrade?
+  imageUrl            String?
+  ingredients         String?
+  categories          String?
+  categoriesTags      String[]
+  allergens           String?
+  allergensTags       String[]
+  additivesTags       String[]
+  ecoScore            Float?
+  ecoScoreGrade       String?
+  novaGroup           Int?
+  labels              String?
+  labelsTags          String[]
+  packaging           String?
+  countryOfOrigin     String?
+  countryTags         String[]
+  brandOwner          String?
+  imageFrontUrl       String?
+  imageIngredientsUrl String?
+  imageNutritionUrl   String?
+  expirationDate      String?
+  languagesTags       String[]
+  verified            Boolean       @default(false)
+  source              DataSource    @default(FATSECRET)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  customFoods         CustomFood[]
+  intakeEntries       IntakeEntry[]
+  cholesterol         Float?
+  transFat            Float?
+  monounsaturatedFat  Float?
+  polyunsaturatedFat  Float?
+  salt                Float?
+  potassium           Float?
+  calcium             Float?
+  iron                Float?
+  vitaminA            Float?
+  vitaminC            Float?
+  vitaminD            Float?
+  vitaminB6           Float?
+  vitaminB12          Float?
+  vitaminE            Float?
+  magnesium           Float?
+  zinc                Float?
+  sucrose             Float?
+  fructose            Float?
+  lactose             Float?
+  starch              Float?
+  alcohol             Float?
+  ecoscore            Float?
+  ecoscoreGrade       String?
+  ingredientsText     String?
+  tracesTags          String[]
+  packagingTags       String[]
+  originsTags         String[]
 
   @@map("food_products")
 }
@@ -223,7 +270,7 @@ enum NutriGrade {
 }
 
 enum DataSource {
-  OPENFOODFACTS
+  FATSECRET
   USDA
   MANUAL
   ML_DETECTED

@@ -3,6 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { PrismaClient } from "@/lib/generated/prisma";
 import type { APIErrorResponse, APISuccessResponse } from "@/types";
+import type {
+  AchievementsResponse,
+  AchievementWithProgress,
+} from "@/types/dashboard";
 
 const prisma = new PrismaClient();
 
@@ -37,22 +41,39 @@ export async function GET() {
 
     // Map user achievements
     const userAchievementIds = user.achievements.map((ua) => ua.achievementId);
-    const achievementsWithStatus = allAchievements.map((achievement) => ({
-      ...achievement,
-      unlocked: userAchievementIds.includes(achievement.id),
-      unlockedAt: user.achievements.find(
-        (ua) => ua.achievementId === achievement.id
-      )?.unlockedAt,
-      progress:
-        user.achievements.find((ua) => ua.achievementId === achievement.id)
-          ?.progress || 0,
-    }));
+    const achievementsWithStatus: AchievementWithProgress[] =
+      allAchievements.map((achievement) => ({
+        ...achievement,
+        category: achievement.category as
+          | "STREAK"
+          | "MILESTONE"
+          | "NUTRITION"
+          | "SCANNING",
+        unlocked: userAchievementIds.includes(achievement.id),
+        unlockedAt: user.achievements.find(
+          (ua) => ua.achievementId === achievement.id
+        )?.unlockedAt,
+        progress:
+          user.achievements.find((ua) => ua.achievementId === achievement.id)
+            ?.progress || 0,
+        condition: {
+          type: "meals_logged" as const,
+          target: 1,
+          current: 0,
+        },
+      }));
 
-    const successResponse: APISuccessResponse = {
+    const successResponse: APISuccessResponse<AchievementsResponse> = {
       data: {
         achievements: achievementsWithStatus,
-        totalUnlocked: user.achievements.length,
-        totalAvailable: allAchievements.length,
+        totalUnlocked: achievementsWithStatus.filter((a) => a.unlocked).length,
+        totalAvailable: achievementsWithStatus.length,
+        categories: {
+          STREAK: { total: 0, unlocked: 0 },
+          MILESTONE: { total: 0, unlocked: 0 },
+          NUTRITION: { total: 0, unlocked: 0 },
+          SCANNING: { total: 0, unlocked: 0 },
+        },
       },
       message: "Achievements retrieved successfully",
     };

@@ -25,6 +25,7 @@ import {
   Activity,
   Droplets,
 } from "lucide-react";
+import type { UserProfile } from "@/types";
 
 export default function GoalsPage() {
   const { user } = useUser();
@@ -42,7 +43,10 @@ export default function GoalsPage() {
   const [localGoals, setLocalGoals] = useState(dailyGoals);
 
   // Calculate recommended values based on profile
-  const recommendedCalories = profile ? calculateCalorieNeeds(profile) : 2000;
+  const recommendedCalories =
+    profile && profile.height && profile.weight && profile.dateOfBirth
+      ? calculateCalorieNeeds(profile as any)
+      : 2000;
   const recommendedMacros = calculateMacroSplit(
     recommendedCalories,
     profile?.dietaryGoals || "MAINTENANCE"

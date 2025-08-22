@@ -15,11 +15,11 @@ export function calculateNutritionPerServing(
   const factor = servingSize / 100;
 
   return {
-    calories: Math.round(nutritionPer100g.calories * factor),
-    protein: Math.round(nutritionPer100g.protein * factor * 10) / 10,
+    calories: Math.round((nutritionPer100g.calories || 0) * factor),
+    protein: Math.round((nutritionPer100g.protein || 0) * factor * 10) / 10,
     carbohydrates:
-      Math.round(nutritionPer100g.carbohydrates * factor * 10) / 10,
-    fat: Math.round(nutritionPer100g.fat * factor * 10) / 10,
+      Math.round((nutritionPer100g.carbohydrates || 0) * factor * 10) / 10,
+    fat: Math.round((nutritionPer100g.fat || 0) * factor * 10) / 10,
     fiber: nutritionPer100g.fiber
       ? Math.round(nutritionPer100g.fiber * factor * 10) / 10
       : undefined,

@@ -10,17 +10,17 @@ export interface MLModelConfig {
 export interface DetectedFood {
   name: string;
   confidence: number;
-  boundingBox: {
+  boundingBox?: {
     x: number;
     y: number;
     width: number;
     height: number;
   };
-  estimatedPortion: {
+  estimatedPortion?: {
     quantity: number;
     unit: string;
   };
-  nutrition: NutritionalInfo;
+  nutrition?: NutritionalInfo;
 }
 
 export interface FoodNutritionDB {
@@ -50,4 +50,4 @@ export interface ImageProcessingResult {
   }>;
 }
 
-export type DetectionMethod = "MANUAL" | "BARCODE" | "ML_VISION";
+export type DetectionMethod = "MANUAL" | "BARCODE" | "ML_VISION" | "VOICE";

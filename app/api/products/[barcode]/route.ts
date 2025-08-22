@@ -1,19 +1,20 @@
 // Updated API route for product lookup
 import { NextRequest, NextResponse } from "next/server";
-import { productAPI, APIError, NetworkError } from "@/lib/api/api";
+import { APIError, NetworkError } from "@/lib/api/api";
 import { isValidBarcode } from "@/lib/utils/utils";
 import type {
   APIErrorResponse,
   APISuccessResponse,
   ProductData,
 } from "@/types";
+import { searchProductByBarcode } from "@/lib/services/productService";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { barcode: string } }
+  { params }: { params: Promise<{ barcode: string }> }
 ) {
   try {
-    const { barcode } = params;
+    const { barcode } = await params;
 
     // Validate barcode format
     if (!barcode || !isValidBarcode(barcode)) {
@@ -29,7 +30,7 @@ export async function GET(
     console.log(`API: Looking up barcode ${barcode}`);
 
     // Search for product
-    const product = await productAPI.searchByBarcode(barcode);
+    const product = await searchProductByBarcode(barcode);
 
     if (!product) {
       const errorResponse: APIErrorResponse = {

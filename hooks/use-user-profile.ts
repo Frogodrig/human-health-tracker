@@ -1,19 +1,35 @@
 // Fixed with proper imports
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import type { User } from "@/lib/generated/prisma";
+import type { ProfileFormData } from "@/types/dashboard";
+
+interface UserProfile {
+  id: string;
+  clerkId: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  dateOfBirth?: Date;
+  gender?: "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY";
+  height?: number;
+  weight?: number;
+  activityLevel: "SEDENTARY" | "LIGHT" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE";
+  dietaryGoals: "WEIGHT_LOSS" | "MUSCLE_GAIN" | "MAINTENANCE" | "BULKING" | "CUTTING";
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 interface UseUserProfile {
-  profile: User | null;
+  profile: UserProfile | null;
   loading: boolean;
   error: string | null;
-  updateProfile: (data: Partial<User>) => Promise<void>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
 export function useUserProfile(): UseUserProfile {
   const { user: clerkUser } = useUser();
-  const [profile, setProfile] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +59,7 @@ export function useUserProfile(): UseUserProfile {
     }
   };
 
-  const updateProfile = async (data: Partial<User>) => {
+  const updateProfile = async (data: Partial<UserProfile>) => {
     try {
       setLoading(true);
       setError(null);
